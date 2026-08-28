@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bunny Professor: Schrödinger's Library (Sheet Sliced)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            --bg-deep: #0a0314;
+            --panel-bg: #160b2e;
+            --accent-purple: #9b51e0;
+            --accent-gold: #f2c94c;
+            --accent-cyan: #00f2fe;
+            --text-color: #f3f4f6;
+            --font-family: 'Courier New', Courier, monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-deep);
+            color: var(--text-color);
+            font-family: var(--font-family);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            background-image: radial-gradient(circle at center, #1e0d3b 0%, #0a0314 100%);
+        }
+
+        #game-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 600px;
+            background: #0f051d;
+            border: 4px solid var(--accent-purple);
+            box-shadow: 0 0 35px rgba(155, 81, 224, 0.6), inset 0 0 25px rgba(0, 242, 254, 0.25);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            background: #06010f;
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+
+        /* Sheet Customization & Debug Panel */
+        #sheet-panel {
+            background: rgba(22, 11, 46, 0.95);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 8px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 800px;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+            font-size: 12px;
+        }
+
+        /* UI HUD Overlay */
+        #ui-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 15px;
+        }
+
+        .hud-panel {
+            background: rgba(22, 11, 46, 0.92);
+            border: 2px solid var(--accent-cyan);
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 13px;
+            pointer-events: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 0 12px rgba(0, 242, 254, 0.3);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .stat-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .bar-container {
+            width: 90px;
+            height: 10px;
+            background: #22103f;
+            border: 1px solid var(--accent-cyan);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: var(--accent-cyan);
+            transition: width 0.3s ease;
+        }
+
+        .mana-fill {
+            background: var(--accent-purple);
+        }
+
+        /* JRPG Dialogue Box */
+        #dialogue-box {
+            position: absolute;
+            bottom: 25px;
+            left: 20px;
+            right: 20px;
+            background: rgba(10, 3, 20, 0.96);
+            border: 3px solid var(--accent-gold);
+            border-radius: 8px;
+            padding: 15px 20px;
+            display: none;
+            pointer-events: auto;
+            box-shadow: 0 6px 25px rgba(0,0,0,0.85);
+        }
+
+        #dialogue-speaker {
+            font-weight: bold;
+            color: var(--accent-gold);
+            margin-bottom: 5px;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        #dialogue-text {
+            font-size: 14px;
+            line-height: 1.5;
+            min-height: 40px;
+            color: #e2e8f0;
+        }
+
+        #dialogue-prompt {
+            text-align: right;
+            font-size: 11px;
+            color: var(--accent-cyan);
+            margin-top: 5px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Mobile Controls */
+        #mobile-controls {
+            display: none;
+            position: absolute;
+            bottom: 10px;
+            left: 0;
+            width: 100%;
+            padding: 0 15px;
+            justify-content: space-between;
+            pointer-events: auto;
+        }
+
+        .dpad, .action-pad {
+            display: grid;
+            gap: 5px;
+        }
+
+        .dpad {
+            grid-template-columns: repeat(3, 50px);
+            grid-template-rows: repeat(3, 50px);
+        }
+
+        .action-pad {
+            grid-template-columns: repeat(3, 56px);
+            align-items: center;
+        }
+
+        .ctrl-btn {
+            background: rgba(155, 81, 224, 0.85);
+            border: 2px solid var(--accent-cyan);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(0, 242, 254, 0.4);
+        }
+
+        .ctrl-btn:active {
+            background: var(--accent-cyan);
+            color: var(--bg-deep);
+        }
+
+        #btn-up { grid-column: 2; grid-row: 1; }
+        #btn-left { grid-column: 1; grid-row: 2; }
+        #btn-right { grid-column: 3; grid-row: 2; }
+        #btn-down { grid-column: 2; grid-row: 3; }
+
+        @media screen and (max-orientation: portrait), (max-width: 850px) {
+            body {
+                justify-content: flex-start;
+                padding-top: 5px;
+            }
+            #game-wrapper {
+                width: 100vw;
+            }
+            #game-container {
+                width: 100vw;
+                height: 70vh;
+                border: none;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            #sheet-panel {
+                width: 100vw;
+                border-radius: 0;
+                padding: 6px 10px;
+                font-size: 10px;
+            }
+            #mobile-controls {
+                display: flex;
+            }
+            #dialogue-box {
+                bottom: 110px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-wrapper">
+        <div id="sheet-panel">
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span style="color: var(--accent-gold); font-weight: bold;">SPRINT PACK:</span>
+                <span id="sheet-status">Schrödinger's Library Sheet Sliced (2048x2048)</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <label for="sheet-upload" style="background: var(--accent-purple); padding: 4px 10px; border-radius: 4px; cursor: pointer; border: 1px solid var(--accent-cyan);">📁 Upload Sheet</label>
+                <input type="file" id="sheet-upload" accept="image/*" style="display: none;">
+                <button id="toggle-debug-boxes" style="background: rgba(0,242,254,0.2); border: 1px solid var(--accent-cyan); padding: 4px 8px; border-radius: 4px; cursor: pointer; color: white;">👁️ Show Slices</button>
+            </div>
+        </div>
+
+        <div id="game-container">
+            <canvas id="gameCanvas" width="800" height="600"></canvas>
+            
+            <div id="ui-layer">
+                <div class="hud-panel">
+                    <div>SANCTUM: <span id="room-name" style="color: var(--accent-cyan);">Laboratory Core</span></div>
+                    <div style="display: flex; gap: 15px;">
+                        <div class="stat-bar">HP: <div class="bar-container"><div id="hp-fill" class="bar-fill" style="width: 100%;"></div></div></div>
+                        <div class="stat-bar">FOCUS: <div class="bar-container"><div id="focus-fill" class="bar-fill mana-fill" style="width: 90%;"></div></div></div>
+                    </div>
+                </div>
+
+                <div id="dialogue-box">
+                    <div id="dialogue-speaker">Professor Bunny</div>
+                    <div id="dialogue-text">Quantum coordinates aligned! All sprites sliced directly from the master sheet.</div>
+                    <div id="dialogue-prompt">[PRESS ENTER / TAP TO CONTINUE]</div>
+                </div>
+
+                <div id="mobile-controls">
+                    <div class="dpad">
+                        <div class="ctrl-btn" id="btn-up">▲</div>
+                        <div class="ctrl-btn" id="btn-left">◀</div>
+                        <div class="ctrl-btn" id="btn-right">▶</div>
+                        <div class="ctrl-btn" id="btn-down">▼</div>
+                    </div>
+                    <div class="action-pad">
+                        <div class="ctrl-btn" id="btn-attack" title="Attack">⚔️</div>
+                        <div class="ctrl-btn" id="btn-cast" title="Cast Skill">✨</div>
+                        <div class="ctrl-btn" id="btn-action" title="Interact">💬</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Master 2048x2048 Game Pack Sheet
+        const spriteSheet = new Image();
+        spriteSheet.crossOrigin = "anonymous";
+        spriteSheet.src = 'IMG_6573_45ae4e.png';
+
+        let showDebugBoxes = false;
+        document.getElementById('toggle-debug-boxes').addEventListener('click', () => {
+            showDebugBoxes = !showDebugBoxes;
+        });
+
+        // Handle Custom Sheet Upload
+        document.getElementById('sheet-upload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    spriteSheet.src = event.target.result;
+                    document.getElementById('sheet-status').innerText = "Custom Sheet Loaded & Sliced";
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // =========================================================================
+        // EXACT COORDINATE MAP FOR 2048x2048 SHEET (IMG_6573_45ae4e.png)
+        // =========================================================================
+        const SPRITE_MAP = {
+            // Section 1: Professor Bunny (Player animations in top row)
+            player: {
+                idle:  [{x: 35, y: 55, w: 90, h: 145}, {x: 165, y: 55, w: 90, h: 145}],
+                walk:  [{x: 295, y: 55, w: 90, h: 145}, {x: 425, y: 55, w: 90, h: 145}, {x: 555, y: 55, w: 90, h: 145}, {x: 685, y: 55, w: 90, h: 145}],
+                run:   [{x: 815, y: 55, w: 95, h: 145}, {x: 945, y: 55, w: 95, h: 145}, {x: 1075, y: 55, w: 95, h: 145}],
+                attack:[{x: 1205, y: 55, w: 100, h: 145}, {x: 1335, y: 55, w: 110, h: 145}, {x: 1465, y: 55, w: 115, h: 145}],
+                skill: [{x: 1595, y: 40, w: 120, h: 160}, {x: 1735, y: 40, w: 120, h: 160}]
+            },
+            // Professor Dialog Portraits
+            portraits: {
+                normal: {x: 35, y: 280, w: 130, h: 140},
+                smile:  {x: 185, y: 280, w: 130, h: 140},
+                think:  {x: 335, y: 280, w: 130, h: 140},
+                shock:  {x: 485, y: 280, w: 130, h: 140}
+            },
+            // Section 2: NPCs & Characters
+            npcs: {
+                holoCat:      {x: 35, y: 490, w: 110, h: 110},
+                aiOracle:     {x: 175, y: 480, w: 110, h: 125},
+                rogueArch:    {x: 315, y: 480, w: 115, h: 125},
+                tinyMouse:    {x: 470, y: 510, w: 90, h: 90},
+                securityDrone:{x: 595, y: 495, w: 125, h: 110},
+                holoWolf:     {x: 750, y: 490, w: 135, h: 115},
+                oldScholar:   {x: 920, y: 485, w: 110, h: 120}
+            },
+            // Section 3: Enemies & Bosses
+            enemies: {
+                dataWraith:       {x: 35, y: 690, w: 120, h: 140},
+                corruptedGuardian:{x: 185, y: 670, w: 150, h: 160},
+                voidHunter:       {x: 370, y: 675, w: 130, h: 155},
+                chronoSerpent:    {x: 535, y: 690, w: 165, h: 135},
+                timeDevourer:     {x: 740, y: 640, w: 230, h: 200}
+            },
+            // Section 4: Weapons & Equipment Icons
+            weapons: {
+                timeStaff:    {x: 35, y: 920, w: 60, h: 115},
+                neuralBlade:  {x: 115, y: 920, w: 60, h: 115},
+                quantumPistol:{x: 195, y: 935, w: 75, h: 95},
+                holoBook:     {x: 290, y: 935, w: 75, h: 95},
+                chronoShield: {x: 385, y: 930, w: 75, h: 105}
+            },
+            // Section 8: Interactive Objects & Props
+            objects: {
+                holoConsole:  {x: 35, y: 1460, w: 110, h: 115},
+                bookShelf:    {x: 165, y: 1460, w: 110, h: 115},
+                ancientBook:  {x: 295, y: 1485, w: 85, h: 85},
+                timeCrystal:  {x: 405, y: 1475, w: 85, h: 95},
+                holoGlobe:    {x: 515, y: 1470, w: 85, h: 100},
+                researchTable:{x: 620, y: 1460, w: 120, h: 110},
+                portalGate:   {x: 885, y: 1445, w: 130, h: 135}
+            }
+        };
+
+        // =========================================================================
+        // =========================================================================
+        const GameState = {
+            currentRoom: 'laboratory_core',
+            dialogueActive: false,
+            dialogueQueue: [],
+            dialogueIndex: 0,
+            onDialogueEnd: null,
+            hp: 120,
+            maxHp: 120,
+            focus: 90,
+            maxFocus: 100,
+            score: 0
+        };
+
+        // Magical Particle System
+        const particles = [];
+        for (let i = 0; i < 50; i++) {
+            particles.push({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 3 + 1,
+                speedY: -(Math.random() * 0.9 + 0.2),
+                speedX: (Math.random() - 0.5) * 0.6,
+                color: Math.random() > 0.5 ? '#00f2fe' : '#9b51e0',
+                alpha: Math.random() * 0.7 + 0.3
+            });
+        }
+
+        const projectiles = [];
+        const enemiesInRooms = {
+            laboratory_core: [
+                { x: 500, y: 340, type: 'dataWraith', hp: 50, maxHp: 50, name: 'Data Wraith', vx: 1.5, dir: 1, range: 120, startX: 500 }
+            ],
+            holo_library: [
+                { x: 350, y: 320, type: 'voidHunter', hp: 80, maxHp: 80, name: 'Void Hunter', vx: 2, dir: 1, range: 160, startX: 350 },
+                { x: 600, y: 340, type: 'chronoSerpent', hp: 90, maxHp: 90, name: 'Chrono Serpent', vx: 2.2, dir: -1, range: 140, startX: 600 }
+            ],
+            celestial_observatory: [
+                { x: 450, y: 300, type: 'timeDevourer', hp: 200, maxHp: 200, name: 'Boss: Time Devourer', vx: 1.2, dir: 1, range: 200, startX: 450 }
+            ],
+            time_archive: [
+                { x: 380, y: 330, type: 'corruptedGuardian', hp: 120, maxHp: 120, name: 'Corrupted Guardian', vx: 1.8, dir: 1, range: 130, startX: 380 }
+            ]
+        };
+
+        // Rooms Configuration (With Sliced Objects and NPCs mapped)
+        const rooms = {
+            laboratory_core: {
+                name: "Laboratory Core",
+                bgGradient: ["#0f051d", "#1a0b36"],
+                exits: { right: 'holo_library' },
+                objects: [
+                    { x: 120, y: 280, w: 80, h: 90, type: 'holoConsole', name: "Holo Console", text: ["Main Holo-Console active.", "Timeline synchronization: 99.8%."] },
+                    { x: 640, y: 280, w: 90, h: 90, type: 'aiOracle', name: "AI Oracle", text: ["Greetings Professor Bunny. The temporal matrix requires your immediate attention."] }
+                ]
+            },
+            holo_library: {
+                name: "Holo Library",
+                bgGradient: ["#110926", "#0d1b33"],
+                exits: { left: 'laboratory_core', right: 'celestial_observatory' },
+                objects: [
+                    { x: 180, y: 270, w: 80, h: 90, type: 'bookShelf', name: "Ancient Book Shelf", text: ["Endless archives of historical timelines.", "One book whispers secrets about the Time Devourer."] },
+                    { x: 600, y: 280, w: 75, h: 85, type: 'ancientBook', name: "Grimoire", text: ["Quantum spells inscribed in glowing cyan ink."] }
+                ]
+            },
+            celestial_observatory: {
+                name: "Celestial Observatory",
+                bgGradient: ["#1a0624", "#0a0212"],
+                exits: { left: 'holo_library', right: 'time_archive' },
+                objects: [
+                    { x: 380, y: 270, w: 80, h: 90, type: 'timeCrystal', name: "Time Crystal", text: ["A pulsating blue crystal radiating infinite chronological energy."] }
+                ]
+            },
+            time_archive: {
+                name: "Time Archive",
+                bgGradient: ["#0f172a", "#1e1b4b"],
+                exits: { left: 'celestial_observatory' },
+                objects: [
+                    { x: 360, y: 260, w: 100, h: 100, type: 'portalGate', name: "Portal Gate", text: ["The gateway to ultimate historical reconstruction."] }
+                ]
+            }
+        };
+
+        // Player (Professor Bunny)
+        const player = {
+            x: 100,
+            y: 320,
+            w: 64,
+            h: 88,
+            speed: 6.5,
+            vx: 0,
+            vy: 0,
+            facing: 'right',
+            animFrame: 0,
+            animTimer: 0,
+            state: 'idle', // 'idle', 'walk', 'run', 'attack', 'skill'
+            attackTimer: 0,
+            glow: 0
+        };
+
+        // =========================================================================
+        // =========================================================================
+        const keys = {};
+        window.addEventListener('keydown', e => {
+            keys[e.code] = true;
+            if (e.code === 'Enter' || e.code === 'Space') {
+                handleInteractionKey();
+            }
+            if (e.code === 'KeyF' || e.code === 'KeyC' || e.code === 'KeyX') {
+                castSkill();
+            }
+            if (e.code === 'KeyA' || e.code === 'KeyZ') {
+                triggerAttack();
+            }
+        });
+        window.addEventListener('keyup', e => {
+            keys[e.code] = false;
+        });
+
+        function bindTouch(id, code, actionFn) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('touchstart', (e) => { 
+                e.preventDefault(); 
+                if (code) keys[code] = true; 
+                if (actionFn) actionFn(); 
+            });
+            el.addEventListener('touchend', (e) => { 
+                e.preventDefault(); 
+                if (code) keys[code] = false; 
+            });
+        }
+        bindTouch('btn-up', 'ArrowUp');
+        bindTouch('btn-down', 'ArrowDown');
+        bindTouch('btn-left', 'ArrowLeft');
+        bindTouch('btn-right', 'ArrowRight');
+        bindTouch('btn-action', null, handleInteractionKey);
+        bindTouch('btn-cast', null, castSkill);
+        bindTouch('btn-attack', null, triggerAttack);
+
+        function startDialogue(speaker, lines, callback) {
+            GameState.dialogueActive = true;
+            document.getElementById('dialogue-speaker').innerText = speaker;
+            GameState.dialogueQueue = lines;
+            GameState.dialogueIndex = 0;
+            document.getElementById('dialogue-text').innerText = lines[0];
+            document.getElementById('dialogue-box').style.display = 'block';
+            GameState.onDialogueEnd = callback;
+        }
+
+        function handleInteractionKey() {
+            if (GameState.dialogueActive) {
+                GameState.dialogueIndex++;
+                if (GameState.dialogueIndex < GameState.dialogueQueue.length) {
+                    document.getElementById('dialogue-text').innerText = GameState.dialogueQueue[GameState.dialogueIndex];
+                } else {
+                    document.getElementById('dialogue-box').style.display = 'none';
+                    GameState.dialogueActive = false;
+                    if (GameState.onDialogueEnd) GameState.onDialogueEnd();
+                }
+                return;
+            }
+
+            const room = rooms[GameState.currentRoom];
+            for (let obj of room.objects) {
+                if (Math.abs(player.x - obj.x) < 85 && Math.abs(player.y - obj.y) < 85) {
+                    startDialogue(obj.name, obj.text);
+                    return;
+                }
+            }
+        }
+
+        function triggerAttack() {
+            if (GameState.dialogueActive) return;
+            player.state = 'attack';
+            player.attackTimer = 25;
+
+            // Melee slash wave projectile
+            projectiles.push({
+                x: player.x + (player.facing === 'right' ? 50 : -10),
+                y: player.y + 35,
+                vx: player.facing === 'right' ? 10 : -10,
+                radius: 12,
+                color: '#f2c94c',
+                life: 30,
+                isMelee: true
+            });
+        }
+
+        function castSkill() {
+            if (GameState.dialogueActive) return;
+            if (GameState.focus < 15) {
+                player.glow = 20;
+                return;
+            }
+
+            GameState.focus -= 15;
+            document.getElementById('focus-fill').style.width = `${(GameState.focus / GameState.maxFocus) * 100}%`;
+
+            player.state = 'skill';
+            player.attackTimer = 35;
+
+            // Quantum spell orb projectile
+            projectiles.push({
+                x: player.x + (player.facing === 'right' ? 50 : -10),
+                y: player.y + 30,
+                vx: player.facing === 'right' ? 9 : -9,
+                radius: 16,
+                color: '#00f2fe',
+                life: 50,
+                isMelee: false
+            });
+
+            for (let i = 0; i < 12; i++) {
+                particles.push({
+                    x: player.x + 32,
+                    y: player.y + 40,
+                    size: Math.random() * 4 + 2,
+                    speedX: (Math.random() - 0.5) * 6,
+                    speedY: (Math.random() - 0.5) * 6,
+                    color: '#00f2fe',
+                    alpha: 1.0
+                });
+            }
+        }
+
+        // =========================================================================
+        // =========================================================================
+        function update() {
+            particles.forEach(p => {
+                p.y += p.speedY;
+                p.x += p.speedX;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+            });
+
+            // Update projectiles and check collisions with enemies
+            let roomEnemies = enemiesInRooms[GameState.currentRoom] || [];
+            for (let i = projectiles.length - 1; i >= 0; i--) {
+                let proj = projectiles[i];
+                proj.x += proj.vx;
+                proj.life--;
+
+                // Check enemy hit
+                for (let e of roomEnemies) {
+                    if (Math.abs(proj.x - (e.x + 40)) < 45 && Math.abs(proj.y - (e.y + 45)) < 55) {
+                        e.hp -= (proj.isMelee ? 25 : 45);
+                        proj.life = 0;
+                        for (let k = 0; k < 8; k++) {
+                            particles.push({ x: e.x + 40, y: e.y + 40, size: 3, speedX: (Math.random()-0.5)*5, speedY: (Math.random()-0.5)*5, color: '#ff4757', alpha: 1 });
+                        }
+                    }
+                }
+
+                if (proj.life <= 0 || proj.x < 0 || proj.x > canvas.width) {
+                    projectiles.splice(i, 1);
+                }
+            }
+
+            // Remove defeated enemies
+            for (let roomKey in enemiesInRooms) {
+                enemiesInRooms[roomKey] = enemiesInRooms[roomKey].filter(e => e.hp > 0);
+            }
+
+            if (GameState.dialogueActive) return;
+
+            // Enemy patrol AI
+            roomEnemies.forEach(e => {
+                e.x += e.vx * e.dir;
+                if (Math.abs(e.x - e.startX) > e.range) {
+                    e.dir *= -1;
+                }
+            });
+
+            if (player.attackTimer > 0) {
+                player.attackTimer--;
+                if (player.attackTimer === 0) {
+                    player.state = 'idle';
+                }
+                return;
+            }
+
+            player.vx = 0;
+            player.vy = 0;
+            let isMoving = false;
+
+            if (keys['ArrowLeft'] || keys['KeyA']) { player.vx = -player.speed; player.facing = 'left'; isMoving = true; player.state = 'walk'; }
+            else if (keys['ArrowRight'] || keys['KeyD']) { player.vx = player.speed; player.facing = 'right'; isMoving = true; player.state = 'walk'; }
+            
+            if (keys['ArrowUp'] || keys['KeyW']) { player.vy = -player.speed; isMoving = true; }
+            if (keys['ArrowDown'] || keys['KeyS']) { player.vy = player.speed; isMoving = true; }
+
+            if (!isMoving) {
+                player.state = 'idle';
+                player.animFrame = 0;
+            } else {
+                player.animTimer++;
+                if (player.animTimer > 5) {
+                    player.animFrame++;
+                    player.animTimer = 0;
+                }
+            }
+
+            player.x += player.vx;
+            player.y += player.vy;
+
+            // Room transitions
+            if (player.x < 25) {
+                if (rooms[GameState.currentRoom].exits.left) {
+                    GameState.currentRoom = rooms[GameState.currentRoom].exits.left;
+                    player.x = canvas.width - 80;
+                    updateRoomUI();
+                } else { player.x = 25; }
+            }
+            if (player.x > canvas.width - 80) {
+                if (rooms[GameState.currentRoom].exits.right) {
+                    GameState.currentRoom = rooms[GameState.currentRoom].exits.right;
+                    player.x = 40;
+                    updateRoomUI();
+                } else { player.x = canvas.width - 80; }
+            }
+
+            player.y = Math.max(120, Math.min(canvas.height - 100, player.y));
+            if (player.glow > 0) player.glow--;
+        }
+
+        function updateRoomUI() {
+            document.getElementById('room-name').innerText = rooms[GameState.currentRoom].name;
+        }
+
+        // =========================================================================
+        // =========================================================================
+        function drawSprite(mapEntry, destX, destY, destW, destH, flipH = false) {
+            if (!spriteSheet.complete || spriteSheet.naturalWidth === 0) return;
+            ctx.save();
+            ctx.translate(destX + destW / 2, destY + destH / 2);
+            if (flipH) ctx.scale(-1, 1);
+
+            ctx.drawImage(
+                spriteSheet,
+                mapEntry.x, mapEntry.y, mapEntry.w, mapEntry.h,
+                -destW / 2, -destH / 2, destW, destH
+            );
+
+            if (showDebugBoxes) {
+                ctx.strokeStyle = '#00f2fe';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-destW / 2, -destH / 2, destW, destH);
+            }
+            ctx.restore();
+        }
+
+        function render() {
+            const room = rooms[GameState.currentRoom];
+            
+            // Draw Background Gradients
+            let bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            bgGrad.addColorStop(0, room.bgGradient[0]);
+            bgGrad.addColorStop(1, room.bgGradient[1]);
+            ctx.fillStyle = bgGrad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw Cyber Grid Lines
+            ctx.strokeStyle = 'rgba(155, 81, 224, 0.12)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 60) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, canvas.height); ctx.stroke();
+            }
+            for (let j = 0; j < canvas.height; j += 60) {
+                ctx.beginPath(); ctx.moveTo(0, j); ctx.lineTo(canvas.width, j); ctx.stroke();
+            }
+
+            // Render Particles
+            particles.forEach(p => {
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.globalAlpha = 1.0;
+
+            // Draw Room Interactive Objects Sliced from Sheet
+            for (let obj of room.objects) {
+                let spriteData = SPRITE_MAP.objects[obj.type] || SPRITE_MAP.objects.holoConsole;
+                drawSprite(spriteData, obj.x, obj.y, obj.w, obj.h);
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = '11px Courier New';
+                ctx.textAlign = 'center';
+                ctx.fillText(obj.name, obj.x + obj.w / 2, obj.y - 10);
+                ctx.textAlign = 'left';
+            }
+
+            // Draw Enemies Sliced from Sheet
+            let roomEnemies = enemiesInRooms[GameState.currentRoom] || [];
+            roomEnemies.forEach(e => {
+                let eSprite = SPRITE_MAP.enemies[e.type] || SPRITE_MAP.enemies.dataWraith;
+                drawSprite(eSprite, e.x, e.y, 80, 90, e.dir < 0);
+
+                // Enemy HP Bar
+                ctx.fillStyle = '#22103f';
+                ctx.fillRect(e.x, e.y - 12, 80, 6);
+                ctx.fillStyle = '#ff4757';
+                ctx.fillRect(e.x, e.y - 12, (e.hp / e.maxHp) * 80, 6);
+            });
+
+            // Draw Exits
+            ctx.fillStyle = 'rgba(0, 242, 254, 0.35)';
+            if (room.exits.left) {
+                ctx.fillRect(0, 180, 15, 240);
+                ctx.fillStyle = '#00f2fe';
+                ctx.font = '18px Courier New';
+                ctx.fillText('◄', 2, 305);
+            }
+            if (room.exits.right) {
+                ctx.fillRect(canvas.width - 15, 180, 15, 240);
+                ctx.fillStyle = '#00f2fe';
+                ctx.font = '18px Courier New';
+                ctx.fillText('►', canvas.width - 16, 305);
+            }
+
+            // Render Projectiles
+            projectiles.forEach(proj => {
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = proj.color;
+                ctx.fillStyle = proj.color;
+                ctx.beginPath();
+                ctx.arc(proj.x, proj.y, proj.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.shadowBlur = 0;
+            });
+
+            // Render Player (Professor Bunny Sliced Frame)
+            let pAnimArray = SPRITE_MAP.player.idle;
+            if (player.state === 'walk') pAnimArray = SPRITE_MAP.player.walk;
+            if (player.state === 'attack') pAnimArray = SPRITE_MAP.player.attack;
+            if (player.state === 'skill') pAnimArray = SPRITE_MAP.player.skill;
+
+            let currentFrameObj = pAnimArray[player.animFrame % pAnimArray.length] || pAnimArray[0];
+            drawSprite(currentFrameObj, player.x, player.y, player.w, player.h, player.facing === 'left');
+        }
+
+        function gameLoop() {
+            update();
+            render();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize intro greeting cutscene
+        updateRoomUI();
+        startDialogue("Archmage Hoot", [
+            "Professor Bunny! All character animations, enemy entities, and interactive objects are precisely sliced from the sheet.",
+            "Use Arrow keys or D-pad to navigate chambers, press '⚔️' or 'A' to attack data wraiths, and '✨' or 'C' to cast quantum spells!"
+        ], () => {
+            gameLoop();
+        });
+    </script>
+</body>
+</html>
