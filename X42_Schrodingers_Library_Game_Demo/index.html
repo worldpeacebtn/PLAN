@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+<title>X42 — Schrödinger's Library</title>
+<style>
+:root{--pink:#ff4fd8;--cyan:#62e9ff;--violet:#9d7bff;--bg:#060713;--panel:rgba(6,8,24,.82);--line:rgba(130,210,255,.32)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#02030a;color:#eef;font-family:Inter,system-ui,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0}
+#app{width:100%;height:100%;position:relative;background:radial-gradient(circle at 50% 25%,#17205b 0,#050716 52%,#02030a 100%);overflow:hidden}
+#stars{position:absolute;inset:0;background-image:radial-gradient(#fff 1px,transparent 1px),radial-gradient(#a96bff 1px,transparent 1px);background-size:97px 83px,151px 131px;opacity:.18;animation:drift 18s linear infinite}
+@keyframes drift{to{background-position:97px 83px,-151px -131px}}
+.screen{position:absolute;inset:0;display:none}.screen.active{display:block}
+.glass{background:var(--panel);border:1px solid var(--line);box-shadow:0 0 28px rgba(110,100,255,.18),inset 0 0 25px rgba(80,180,255,.04);backdrop-filter:blur(10px);border-radius:18px}
+#title{position:absolute;left:4vw;top:4vh;font-weight:900;letter-spacing:.04em;font-size:clamp(20px,3vw,42px);color:#fff;text-shadow:0 0 18px var(--pink)}
+#title span{color:var(--cyan)}
+#subtitle{position:absolute;left:4.2vw;top:11vh;color:#b9c8e8;letter-spacing:.18em;font-size:12px}
+#chapters{position:absolute;left:4vw;right:4vw;bottom:15vh;display:flex;gap:12px;overflow-x:auto;padding:10px 2px}
+.chapter{min-width:150px;height:190px;position:relative;overflow:hidden;border-radius:16px;border:1px solid rgba(255,255,255,.22);cursor:pointer;transition:.2s;flex:1}
+.chapter:hover,.chapter.selected{transform:translateY(-8px);border-color:var(--pink);box-shadow:0 0 22px rgba(255,79,216,.35)}
+.chapter img{width:100%;height:100%;object-fit:cover;filter:saturate(1.15) contrast(1.05)}
+.chapter:after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 35%,rgba(0,0,0,.9))}
+.chapter .ct{position:absolute;z-index:2;left:12px;right:8px;bottom:12px}.ct b{display:block;color:#fff}.ct small{color:#b8c5e6}
+#start{position:absolute;bottom:5vh;left:50%;transform:translateX(-50%);padding:14px 28px;border:1px solid var(--cyan);border-radius:999px;background:rgba(50,180,255,.12);box-shadow:0 0 24px rgba(98,233,255,.22);cursor:pointer}
+#game{display:none;position:absolute;inset:0}.playing #game{display:block}
+#viewport{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(92vw,720px);aspect-ratio:16/9;border:2px solid rgba(150,220,255,.35);border-radius:12px;overflow:hidden;box-shadow:0 0 45px rgba(0,220,255,.16),0 0 90px rgba(255,0,190,.08);background:#050713}
+#world{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;image-rendering:auto;filter:saturate(1.15) contrast(1.05)}
+#worldShade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.18),transparent 40%,rgba(0,0,0,.28));pointer-events:none}
+#spriteCanvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:auto;pointer-events:none}
+#hud{position:absolute;left:18px;right:18px;top:14px;display:flex;justify-content:space-between;pointer-events:none}
+.hudbox{padding:9px 12px;border-radius:12px;background:rgba(5,7,20,.72);border:1px solid rgba(130,220,255,.3);font-size:12px}
+.bar{width:120px;height:6px;border-radius:99px;background:#25283c;margin-top:5px;overflow:hidden}.bar i{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--pink),var(--cyan))}
+#dialogue{position:absolute;left:5%;right:5%;bottom:8%;padding:13px 16px;display:none;z-index:5}.name{color:var(--pink);font-weight:800;font-size:12px;margin-bottom:4px}.text{font-size:14px;line-height:1.35}
+#remote{position:absolute;left:18px;bottom:18px;width:145px;height:145px;pointer-events:auto}.stick{position:absolute;width:82px;height:82px;left:31px;top:31px;border:1px solid rgba(110,220,255,.4);border-radius:50%;background:rgba(10,12,30,.58)}.knob{position:absolute;width:38px;height:38px;left:21px;top:21px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff,#b45cff 20%,#4be7ff 65%,#17112e);box-shadow:0 0 18px #ff4fd8;transition:.05s}
+#actions{position:absolute;right:18px;bottom:18px;display:grid;grid-template-columns:repeat(2,70px);gap:10px}.act{height:58px;border-radius:16px;border:1px solid rgba(255,255,255,.24);background:rgba(7,9,28,.72);box-shadow:0 0 16px rgba(120,80,255,.12);cursor:pointer;font-size:12px}.act b{display:block;font-size:20px;color:var(--cyan)}
+#topbar{position:absolute;left:18px;right:18px;bottom:10px;display:flex;justify-content:center;z-index:8;pointer-events:none}.pill{pointer-events:auto;padding:8px 13px;border-radius:99px;background:rgba(5,7,20,.76);border:1px solid rgba(255,255,255,.2);font-size:11px}
+#chapterMenu{position:absolute;top:16px;right:16px;z-index:10;width:min(310px,80vw);padding:12px;display:none}.playing.menuopen #chapterMenu{display:block}.row{display:flex;gap:8px;align-items:center}.row button{padding:8px;border:1px solid rgba(255,255,255,.16);border-radius:10px;cursor:pointer}.row button.active{border-color:var(--pink);color:#fff}
+#sheetPanel{position:absolute;inset:4%;display:none;z-index:20;padding:14px}.sheetopen #sheetPanel{display:block}.sheetImg{width:100%;height:calc(100% - 40px);object-fit:contain;background:#02030a}
+#toast{position:absolute;left:50%;top:18%;transform:translateX(-50%);padding:10px 16px;border-radius:99px;background:rgba(8,8,25,.88);border:1px solid var(--pink);display:none;z-index:30;font-size:12px}
+@media(max-width:700px){#viewport{width:96vw;border-radius:8px}.chapter{min-width:128px;height:155px}#chapters{bottom:17vh}.hudbox{font-size:10px}.bar{width:85px}.act{height:52px}.playing #title,.playing #subtitle{display:none}#remote{transform:scale(.84);transform-origin:bottom left}}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="stars"></div>
+<section id="menu" class="screen active">
+  <div id="title">X42 <span>•</span> SCHRÖDINGER'S LIBRARY</div>
+  <div id="subtitle">RECONSTRUCT • RESEARCH • REVIVE • A CYBERPUNK PIXEL ADVENTURE</div>
+  <div id="chapters"></div>
+  <button id="start">▶ ENTER THE LIBRARY</button>
+</section>
+
+<div id="game">
+  <div id="viewport">
+    <img id="world" src="utopia_gallery.jpg">
+    <div id="worldShade"></div>
+    <canvas id="spriteCanvas" width="640" height="360"></canvas>
+    <div id="hud">
+      <div class="hudbox"><b>PROF. SCHRÖDINGER</b><br><span id="state">IDLE</span></div>
+      <div class="hudbox">HP <div class="bar"><i id="hp"></i></div> FOCUS <div class="bar"><i id="focus"></i></div></div>
+    </div>
+    <div id="dialogue" class="glass"><div class="name" id="dname"></div><div class="text" id="dtext"></div></div>
+    <div id="toast"></div>
+  </div>
+  <div id="remote"><div class="stick"><div class="knob" id="knob"></div></div></div>
+  <div id="actions">
+    <button class="act" id="attack"><b>⚔</b>ATTACK</button>
+    <button class="act" id="skill"><b>✦</b>SKILL</button>
+    <button class="act" id="interact"><b>◎</b>INTERACT</button>
+    <button class="act" id="menuBtn"><b>☰</b>CHAPTERS</button>
+    <button class="act" id="sheetBtn"><b>▦</b>ONE SHEET</button>
+    <button class="act" id="backBtn"><b>←</b>EXIT</button>
+  </div>
+  <div id="chapterMenu" class="glass"><b>CHAPTER SELECTOR</b><div class="row" id="miniChapters" style="margin-top:9px;flex-wrap:wrap"></div></div>
+  <div id="sheetPanel" class="glass"><button id="closeSheet" style="float:right">✕ CLOSE</button><img class="sheetImg" src="one_sheet.png"></div>
+</div>
+</div>
+
+<script>
+const chapters=[
+ {id:1,title:"AWAKENING",sub:"Time crystal",bg:"utopia_gallery.jpg",x:"Awakening: the crystal remembers."},
+ {id:2,title:"THE LIBRARY",sub:"Infinite stacks",bg:"project_hub.jpg",x:"The library is larger inside than outside."},
+ {id:3,title:"LOST ECHOES",sub:"Past signals",bg:"recruitment.jpg",x:"A tiny pink mouse has found a forbidden archive."},
+ {id:4,title:"TIME FRACTURES",sub:"The archive",bg:"future_wolf.jpg",x:"The future is leaking backwards."},
+ {id:5,title:"THE TRUTH",sub:"DNA & memory",bg:"utopia_gallery.jpg",x:"Your ancestor left a message inside the machine."},
+ {id:6,title:"THE FUTURE",sub:"Decision",bg:"future_wolf.jpg",x:"Prevent the dark future—or understand it first."}
+];
+const ch=document.querySelector("#chapters"), mini=document.querySelector("#miniChapters");
+let current=0, started=false, px=320,py=205, vx=0,vy=0,anim="idle",frame=0, hp=100, focus=100, dialogueTimer=0;
+const img=new Image(); img.src="one_sheet.png";
+const canvas=document.querySelector("#spriteCanvas"),ctx=canvas.getContext("2d");
+function cards(){
+ ch.innerHTML=chapters.map((c,i)=>`<button class="chapter ${i===0?'selected':''}" data-i="${i}"><img src="${c.bg}"><span class="ct"><b>CH.${String(c.id).padStart(2,"0")} ${c.title}</b><small>${c.sub}</small></span></button>`).join("");
+ mini.innerHTML=chapters.map((c,i)=>`<button data-i="${i}">CH.${String(c.id).padStart(2,"0")}</button>`).join("");
+ document.querySelectorAll(".chapter,.row button").forEach(b=>b.onclick=()=>select(+b.dataset.i));
+}
+function select(i){
+ current=i; document.querySelector("#world").src=chapters[i].bg;
+ document.querySelectorAll(".chapter").forEach((b,j)=>b.classList.toggle("selected",j===i));
+ document.querySelectorAll("#miniChapters button").forEach((b,j)=>b.classList.toggle("active",j===i));
+ toast(chapters[i].title+" • "+chapters[i].sub);
+}
+function toast(s){const t=document.querySelector("#toast");t.textContent=s;t.style.display="block";clearTimeout(window.tt);window.tt=setTimeout(()=>t.style.display="none",1400)}
+cards();
+
+document.querySelector("#start").onclick=()=>{started=true;document.querySelector("#menu").classList.remove("active");document.querySelector("#app").classList.add("playing");toast("LIBRARY LINK ESTABLISHED")};
+document.querySelector("#backBtn").onclick=()=>{document.querySelector("#app").classList.remove("playing");document.querySelector("#menu").classList.add("active")};
+document.querySelector("#menuBtn").onclick=()=>document.querySelector("#app").classList.toggle("menuopen");
+document.querySelector("#sheetBtn").onclick=()=>document.querySelector("#app").classList.add("sheetopen");
+document.querySelector("#closeSheet").onclick=()=>document.querySelector("#app").classList.remove("sheetopen");
+document.querySelectorAll("#miniChapters button").forEach(b=>b.onclick=()=>{select(+b.dataset.i);document.querySelector("#app").classList.remove("menuopen")});
+
+function say(name,text){
+ document.querySelector("#dname").textContent=name;
+ document.querySelector("#dtext").textContent=text;
+ document.querySelector("#dialogue").style.display="block";
+ clearTimeout(dialogueTimer);dialogueTimer=setTimeout(()=>document.querySelector("#dialogue").style.display="none",5200);
+}
+document.querySelector("#interact").onclick=()=>{
+ const lines=[
+ ["Professor Bunny","Oh. Hello, future me. Please don't touch the red crystal. It remembers everything."],
+ ["Luna","I can project the missing page, Professor. But the mouse stole the index again."],
+ ["Professor Bunny","My hair is basically Medusa with a library card. Focus, Schrodinger."],
+ ["Tiny Mouse","*squeak squeak* — forbidden knowledge acquired."]
+ ];
+ say(...lines[current%lines.length]);
+};
+document.querySelector("#attack").onclick=()=>{anim="attack";frame=0;toast("QUANTUM BLADE • FRAME SEQUENCE");};
+document.querySelector("#skill").onclick=()=>{anim="skill";frame=0;focus=Math.max(0,focus-18);toast("TIME-CRYSTAL SKILL • FRAME SEQUENCE");};
+function key(e){
+ const k=e.key.toLowerCase();
+ if(k==="arrowleft"||k==="a")vx=-1;
+ if(k==="arrowright"||k==="d")vx=1;
+ if(k==="arrowup"||k==="w")vy=-1;
+ if(k==="arrowdown"||k==="s")vy=1;
+ if(k===" ")document.querySelector("#attack").click();
+}
+function keyup(e){const k=e.key.toLowerCase();if(["arrowleft","a","arrowright","d"].includes(k))vx=0;if(["arrowup","w","arrowdown","s"].includes(k))vy=0}
+addEventListener("keydown",key);addEventListener("keyup",keyup);
+
+let drag=false;
+const remote=document.querySelector("#remote"),knob=document.querySelector("#knob");
+function joy(e){
+ const r=remote.getBoundingClientRect(),p=e.touches?e.touches[0]:e;
+ let x=p.clientX-(r.left+72),y=p.clientY-(r.top+72),m=Math.hypot(x,y),max=38;
+ if(m>max){x=x/m*max;y=y/m*max} knob.style.transform=`translate(${x}px,${y}px)`;vx=x/max;vy=y/max;
+}
+remote.addEventListener("pointerdown",e=>{drag=true;remote.setPointerCapture(e.pointerId);joy(e)});
+remote.addEventListener("pointermove",e=>{if(drag)joy(e)});
+remote.addEventListener("pointerup",()=>{drag=false;knob.style.transform="translate(0,0)";vx=vy=0});
+
+function sourceRect(type,f){
+ // IMPORTANT: runtime is bound to the ONE SHEET. These are atlas coordinates,
+ // not exported/generated character files. The top row is the main Bunny sequence.
+ const cells=[
+  [16,73,58,116],[76,73,58,116],[136,73,58,116],[196,73,58,116],
+  [256,73,58,116],[316,73,58,116],[376,73,58,116],[436,73,58,116],
+  [496,73,58,116],[556,73,58,116],[616,73,58,116],[676,73,58,116]
+ ];
+ if(type==="idle")return cells[f%4];
+ if(type==="walk")return cells[4+(f%4)];
+ if(type==="attack")return cells[8+(f%3)];
+ if(type==="skill")return cells[9+(f%3)];
+ return cells[f%4];
+}
+function drawBunny(){
+ ctx.clearRect(0,0,canvas.width,canvas.height);
+ if(!img.complete)return;
+ let r=sourceRect(anim,frame);
+ // Consistent pivot: all frames are drawn around their feet.
+ const dw=74,dh=148;
+ ctx.imageSmoothingEnabled=false;
+ ctx.drawImage(img,r[0],r[1],r[2],r[3],px-dw/2,py-dh,dw,dh);
+}
+function loop(){
+ if(started){
+  const moving=Math.abs(vx)+Math.abs(vy)>.08;
+  if(anim!=="attack"&&anim!=="skill")anim=moving?"walk":"idle";
+  if(anim==="attack"||anim==="skill"){frame++; if(frame>8){anim="idle";frame=0}}
+  else frame+=moving?.22:.08;
+  px+=vx*1.7;py+=vy*1.7;px=Math.max(45,Math.min(595,px));py=Math.max(170,Math.min(330,py));
+  if(moving)document.querySelector("#state").textContent="WALK";
+  else document.querySelector("#state").textContent=anim.toUpperCase();
+  hp=Math.min(100,hp+.02);focus=Math.min(100,focus+.03);
+  document.querySelector("#hp").style.width=hp+"%";document.querySelector("#focus").style.width=focus+"%";
+  drawBunny();
+ }
+ requestAnimationFrame(loop);
+}
+loop();
+</script>
+</body></html>
