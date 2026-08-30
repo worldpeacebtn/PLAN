@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Helix Office & WorldPeace Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #020205;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        body::-webkit-scrollbar { display: none; }
+        h1, h2, h3, .cyber-font { font-family: 'Orbitron', sans-serif; }
+        #canvas-container {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 0; pointer-events: none;
+        }
+        #scroll-proxy {
+            position: absolute; top: 0; width: 100%; height: 1000vh; z-index: 1;
+        }
+        #ui-layer {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: 10; pointer-events: none;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+        .clickable { pointer-events: auto; }
+        .glass-panel {
+            background: rgba(10, 15, 30, 0.75);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 255, 255, 0.25);
+            box-shadow: 0 0 25px rgba(0, 255, 255, 0.15);
+        }
+        .scanline {
+            width: 100%; height: 100px;
+            background: linear-gradient(0deg, rgba(0,0,0,0) 0%, rgba(0,255,255,0.15) 50%, rgba(0,0,0,0) 100%);
+            opacity: 0.1; position: absolute; bottom: 100%;
+            animation: scanline 8s linear infinite; pointer-events: none;
+        }
+        @keyframes scanline { 0% { bottom: 100%; } 100% { bottom: -100px; } }
+        .app-window {
+            position: fixed; top: 10vh; left: 10vw; width: 80vw; height: 80vh; z-index: 200;
+            background: rgba(5, 5, 15, 0.95); border: 2px solid #00ffff; border-radius: 8px;
+            display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 50px rgba(0,255,255,0.4);
+        }
+        .node-canvas-area {
+            position: relative; background: #080812; border: 1px dashed rgba(255,255,255,0.2);
+            width: 100%; height: 100%; overflow: hidden; cursor: grab;
+        }
+        .draggable-node {
+            position: absolute; cursor: move; user-select: none;
+            background: rgba(20,25,45,0.9); border: 1px solid #00ffff; padding: 10px; border-radius: 6px; min-width: 120px;
+        }
+    </style>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    <div class="scanline z-50"></div>
+    <div id="scroll-proxy"></div>
+
+    <div id="ui-layer">
+        <!-- Top HUD -->
+        <header class="p-6 flex justify-between items-start clickable">
+            <div>
+                <h1 class="text-3xl font-black text-cyan-400 tracking-widest cyber-font">HELIX 🧬 OFFICE</h1>
+                <p class="text-xs tracking-[0.3em] text-cyan-200 opacity-70">WORLDPEACEBTN HUB // 42 REPOSITORIES</p>
+            </div>
+            <div class="flex gap-4 items-center">
+                <div class="glass-panel px-4 py-2 rounded text-xs font-mono">
+                    <span id="active-apps-count" class="text-fuchsia-400 font-bold">0</span> / 10 APPS ACTIVE
+                </div>
+                <button onclick="toggleNodeStudio()" class="px-4 py-2 bg-cyan-900/40 border border-cyan-400 rounded text-cyan-300 font-mono text-xs hover:bg-cyan-500 hover:text-black transition">
+                    NODE STUDIO
+                </button>
+                <button onclick="exportSessionSettings()" class="px-4 py-2 bg-fuchsia-900/40 border border-fuchsia-400 rounded text-fuchsia-300 font-mono text-xs hover:bg-fuchsia-500 hover:text-white transition">
+                    EXPORT CONFIG
+                </button>
+            </div>
+        </header>
+
+        <!-- Left Repositories Menu (42 Repos) -->
+        <div class="absolute left-6 top-24 bottom-24 w-72 glass-panel rounded-lg p-4 overflow-y-auto clickable flex flex-col gap-2" id="repo-sidebar">
+            <h3 class="text-xs font-mono text-fuchsia-400 tracking-widest mb-2">REPOSITORIES & .HTML DOTS</h3>
+            <div id="repo-list-container" class="flex flex-col gap-2">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </div>
+
+        <!-- Center HUD Overlay -->
+        <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 glass-panel px-6 py-3 rounded-full flex gap-6 items-center clickable">
+            <span class="text-xs font-mono text-cyan-300" id="current-focus-label">FOCUS: Helix Core</span>
+            <button onclick="openCurrentFocusApp()" class="px-4 py-1.5 bg-cyan-500 text-black font-bold font-mono rounded text-xs hover:bg-cyan-400 transition">LAUNCH APP CANVAS</button>
+        </div>
+    </div>
+
+    <!-- Dynamic Application Modal Container -->
+    <div id="active-apps-container"></div>
+
+    <!-- Node WebDev Studio Modal -->
+    <div id="node-studio-modal" class="fixed inset-0 bg-black/95 z-50 hidden flex-col p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl cyber-font text-cyan-400">NODE WEBDEV WORKFLOW & IDEATION STUDIO</h2>
+            <div class="flex gap-2">
+                <button onclick="saveNodeCanvasAsHTML()" class="px-4 py-1 bg-cyan-600 text-black font-mono font-bold rounded text-xs">EXPORT STANDALONE HTML</button>
+                <button onclick="toggleNodeStudio()" class="px-4 py-1 bg-gray-800 text-gray-300 font-mono rounded text-xs">CLOSE</button>
+            </div>
+        </div>
+        <div class="flex-1 node-canvas-area rounded-lg" id="node-canvas" ondragover="allowDrop(event)" ondrop="dropNode(event)">
+            <div class="draggable-node" draggable="true" ondragstart="dragNode(event)" style="top: 50px; left: 50px;" id="node-1">
+                <div class="text-xs text-cyan-400 font-mono font-bold">Repo: GAme</div>
+                <div class="text-[10px] text-gray-400">index.html</div>
+            </div>
+            <div class="draggable-node" draggable="true" ondragstart="dragNode(event)" style="top: 150px; left: 250px;" id="node-2">
+                <div class="text-xs text-fuchsia-400 font-mono font-bold">Repo: LIBRA</div>
+                <div class="text-[10px] text-gray-400">LIBRA.html</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Three.js Visualizer Script -->
+    <script type="module">
+        import * as THREE from 'three';
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+        scene.add(ambientLight);
+        const pointLight = new THREE.PointLight(0x00ffff, 2, 50);
+        pointLight.position.set(0, 0, 10);
+        scene.add(pointLight);
+
+        // Build 42 Repositories Helix Structure
+        const helixGroup = new THREE.Group();
+        const repoCount = 42;
+        const reposData = [];
+
+        for (let i = 0; i < repoCount; i++) {
+            const theta = i * 0.35;
+            const y = (i - repoCount / 2) * 0.6;
+            
+            // Strand 1 (Pink) & Strand 2 (Blue), Core is Purple
+            const x1 = Math.cos(theta) * 3;
+            const z1 = Math.sin(theta) * 3;
+            
+            const color = i % 3 === 0 ? 0xff00ff : (i % 3 === 1 ? 0x00ffff : 0x9900ff);
+            const geometry = new THREE.SphereGeometry(0.25, 16, 16);
+            const material = new THREE.MeshStandardMaterial({ color: color, emissive: color, emissiveIntensity: 0.5 });
+            const sphere = new THREE.Mesh(geometry, material);
+            
+            sphere.position.set(x1, y, z1);
+            sphere.userData = { id: i, name: `repo-node-${i+1}`, html: `https://worldpeacebtn.github.io/repo-${i+1}/index.html` };
+            helixGroup.add(sphere);
+            reposData.push(sphere);
+        }
+        scene.add(helixGroup);
+        camera.position.z = 15;
+
+        // Scroll Integration
+        let scrollY = 0;
+        window.addEventListener('scroll', () => {
+            scrollY = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+            helixGroup.rotation.y = scrollY * Math.PI * 6;
+            camera.position.y = - (scrollY * 25 - 12);
+        });
+
+        // Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            helixGroup.rotation.z += 0.002;
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+
+    <!-- Application Controller Logic -->
+    <script>
+        const repositories = Array.from({length: 42}, (_, i) => ({
+            id: i + 1,
+            name: i === 0 ? "GAme (Cyber Helix)" : (i === 1 ? "LIBRA (Library)" : `worldpeace-repo-${i+1}`),
+            htmlFile: i === 0 ? "https://worldpeacebtn.github.io/GAme/inDExStory.html" : "https://worldpeacebtn.github.io/-/RENEW.html",
+            starred: false
+        }));
+
+        let activeApps = [];
+        const maxActiveApps = 10;
+
+        function renderRepositories() {
+            const container = document.getElementById('repo-list-container');
+            container.innerHTML = '';
+            repositories.forEach(repo => {
+                const div = document.createElement('div');
+                div.className = "flex items-center justify-between p-2 rounded bg-black/40 border border-gray-800 hover:border-cyan-500 transition cursor-pointer";
+                div.innerHTML = `
+                    <div onclick="focusRepo(${repo.id})" class="flex items-center gap-2 truncate">
+                        <span class="w-2 h-2 rounded-full ${repo.id % 2 === 0 ? 'bg-cyan-400' : 'bg-fuchsia-400'}"></span>
+                        <span class="text-xs font-mono text-gray-200 truncate">${repo.name}</span>
+                    </div>
+                    <button onclick="toggleStar(${repo.id}, event)" class="text-sm ${repo.starred ? 'text-yellow-400' : 'text-gray-600'}">★</button>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function toggleStar(id, event) {
+            event.stopPropagation();
+            const repo = repositories.find(r => r.id === id);
+            if(repo) {
+                repo.starred = !repo.starred;
+                renderRepositories();
+            }
+        }
+
+        function focusRepo(id) {
+            const repo = repositories.find(r => r.id === id);
+            document.getElementById('current-focus-label').innerText = `FOCUS: ${repo.name}`;
+            window.currentRepoToLaunch = repo;
+        }
+
+        function openCurrentFocusApp() {
+            const repo = window.currentRepoToLaunch || repositories[0];
+            if(activeApps.length >= maxActiveApps) {
+                alert("SYSTEM ENERGY WARNING: Maximum concurrent active applications limit reached (10 max). Please close existing app canvases to conserve system energy.");
+                return;
+            }
+            if(activeApps.includes(repo.id)) return;
+
+            activeApps.push(repo.id);
+            updateActiveAppsCount();
+
+            const container = document.getElementById('active-apps-container');
+            const windowDiv = document.createElement('div');
+            windowDiv.className = "app-window";
+            windowDiv.id = `app-win-${repo.id}`;
+            windowDiv.innerHTML = `
+                <div class="p-3 bg-gray-900 border-b border-cyan-900 flex justify-between items-center">
+                    <span class="text-xs font-mono text-cyan-400 font-bold">${repo.name} [${repo.htmlFile}]</span>
+                    <button onclick="closeApp(${repo.id})" class="text-gray-400 hover:text-fuchsia-400 font-mono text-xs px-2">CLOSE [X]</button>
+                </div>
+                <iframe src="${repo.htmlFile}" class="w-full flex-1 border-0 bg-black" onerror="this.srcdoc='<div style=\'color:cyan;padding:20px;font-family:monospace;\'>[Sandbox Simulation Loaded]: App Active & Running Securely.</div>'"></iframe>
+            `;
+            container.appendChild(windowDiv);
+        }
+
+        function closeApp(id) {
+            activeApps = activeApps.filter(appId => appId !== id);
+            updateActiveAppsCount();
+            const el = document.getElementById(`app-win-${id}`);
+            if(el) el.remove();
+        }
+
+        function updateActiveAppsCount() {
+            document.getElementById('active-apps-count').innerText = activeApps.length;
+        }
+
+        function toggleNodeStudio() {
+            const modal = document.getElementById('node-studio-modal');
+            modal.style.display = modal.style.display === 'flex' ? 'hidden' : 'flex';
+            modal.classList.toggle('hidden');
+        }
+
+        function exportSessionSettings() {
+            const sessionData = {
+                activeApps,
+                favorites: repositories.filter(r => r.starred),
+                timestamp: new Date().toISOString()
+            };
+            const blob = new Blob([JSON.stringify(sessionData, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'helix_session_config.json';
+            a.click();
+        }
+
+        let draggedNode = null;
+        function dragNode(e) { draggedNode = e.target; }
+        function allowDrop(e) { e.preventDefault(); }
+        function dropNode(e) {
+            e.preventDefault();
+            if(draggedNode) {
+                const rect = document.getElementById('node-canvas').getBoundingClientRect();
+                draggedNode.style.left = `${e.clientX - rect.left - 60}px`;
+                draggedNode.style.top = `${e.clientY - rect.top - 20}px`;
+            }
+        }
+
+        function saveNodeCanvasAsHTML() {
+            const canvasHTML = document.getElementById('node-canvas').innerHTML;
+            const fullDoc = `<!DOCTYPE html><html><head><title>Saved Node Workflow</title><style>body{background:#020205;color:#fff;font-family:sans;}.draggable-node{position:absolute;background:rgba(20,25,45,0.9);border:1px solid #00ffff;padding:10px;border-radius:6px;}</style></head><body><h2>Node Workflow Export</h2><div style="position:relative;width:100vw;height:80vh;background:#080812;">${canvasHTML}</div></body></html>`;
+            const blob = new Blob([fullDoc], {type: 'text/html'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'node_workflow_standalone.html';
+            a.click();
+        }
+
+        window.onload = () => {
+            renderRepositories();
+            window.currentRepoToLaunch = repositories[0];
+        };
+    </script>
+</body>
+</html>
