@@ -1,0 +1,3011 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no" />
+    <title>Helix Office · Gaming Hub</title>
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;600&display=swap" rel="stylesheet" />
+    <style>
+        /* ── RESET & BASE ── */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            user-select: none;
+        }
+        body {
+            background: #020205;
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        body::-webkit-scrollbar {
+            display: none;
+        }
+        .cyber-font {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* ── 3D CONTAINER ── */
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: auto;
+        }
+
+        /* ── SCANLINE ── */
+        .scanline {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100px;
+            background: linear-gradient(0deg, rgba(0, 0, 0, 0) 0%, rgba(0, 255, 255, 0.08) 50%, rgba(0, 0, 0, 0) 100%);
+            opacity: 0.15;
+            pointer-events: none;
+            z-index: 2;
+            animation: scanline 8s linear infinite;
+        }
+        @keyframes scanline {
+            0% {
+                top: -100px;
+            }
+            100% {
+                top: 100vh;
+            }
+        }
+
+        /* ── GLASS PANEL ── */
+        .glass-panel {
+            background: rgba(10, 15, 30, 0.65);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 255, 255, 0.20);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.08);
+        }
+        .glass-panel-dark {
+            background: rgba(5, 5, 18, 0.85);
+            backdrop-filter: blur(18px);
+            -webkit-backdrop-filter: blur(18px);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+        }
+
+        /* ── HUD LAYER ── */
+        #ui-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 10;
+            pointer-events: none;
+            display: flex;
+            flex-direction: column;
+        }
+        .clickable {
+            pointer-events: auto;
+        }
+
+        /* ── LEFT SIDEBAR ── */
+        #repo-sidebar {
+            position: fixed;
+            left: 12px;
+            top: 80px;
+            bottom: 80px;
+            width: 220px;
+            z-index: 20;
+            pointer-events: auto;
+            transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1), opacity 0.3s;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            border-radius: 12px;
+            padding: 0;
+        }
+        #repo-sidebar.collapsed {
+            transform: translateX(-240px);
+            opacity: 0;
+        }
+        #repo-sidebar .sidebar-header {
+            padding: 12px 14px 8px 14px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.12);
+            flex-shrink: 0;
+        }
+        #repo-sidebar .sidebar-header h3 {
+            font-size: 10px;
+            letter-spacing: 0.2em;
+            color: #f0aaff;
+            font-weight: 700;
+        }
+        #repo-sidebar .sidebar-header .sub {
+            font-size: 8px;
+            color: rgba(255, 255, 255, 0.35);
+            font-family: monospace;
+            margin-top: 2px;
+        }
+        #repo-list-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px 10px 12px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        #repo-list-container::-webkit-scrollbar {
+            width: 3px;
+        }
+        #repo-list-container::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+        }
+        #repo-list-container::-webkit-scrollbar-thumb {
+            background: #00ffff;
+            border-radius: 4px;
+        }
+
+        .repo-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 6px 10px 6px 8px;
+            border-radius: 6px;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 11px;
+            font-family: monospace;
+        }
+        .repo-item:hover {
+            background: rgba(0, 255, 255, 0.07);
+            border-color: rgba(0, 255, 255, 0.25);
+        }
+        .repo-item .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            margin-right: 8px;
+            transition: 0.2s;
+        }
+        .repo-item .dot.pink {
+            background: #ff44ff;
+            box-shadow: 0 0 8px #ff44ff66;
+        }
+        .repo-item .dot.blue {
+            background: #44ffff;
+            box-shadow: 0 0 8px #44ffff66;
+        }
+        .repo-item .dot.purple {
+            background: #aa66ff;
+            box-shadow: 0 0 8px #aa66ff66;
+        }
+        .repo-item .repo-name {
+            flex: 1;
+            color: rgba(255, 255, 255, 0.8);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 10px;
+        }
+        .repo-item .star-btn {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 0 2px;
+            transition: 0.2s;
+            line-height: 1;
+        }
+        .repo-item .star-btn.starred {
+            color: #ffdd44;
+            text-shadow: 0 0 12px #ffdd4488;
+        }
+        .repo-item .star-btn:hover {
+            transform: scale(1.2);
+        }
+        .repo-item .html-badge {
+            font-size: 7px;
+            background: rgba(0, 255, 255, 0.12);
+            padding: 1px 6px;
+            border-radius: 10px;
+            color: #88ffff;
+            margin-left: 6px;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            flex-shrink: 0;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .repo-item .html-badge:hover {
+            background: rgba(0, 255, 255, 0.25);
+        }
+        #sort-options {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #fff;
+            font-size: 9px;
+            font-family: monospace;
+            padding: 2px 6px;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+        #sort-options option {
+            background: #05050f;
+        }
+
+        /* ── TOGGLE SIDEBAR BTN ── */
+        #toggle-sidebar {
+            position: fixed;
+            left: 12px;
+            top: 12px;
+            z-index: 25;
+            pointer-events: auto;
+            background: rgba(10, 15, 30, 0.6);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 6px 10px;
+            color: #88ffff;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: monospace;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        #toggle-sidebar:hover {
+            background: rgba(0, 255, 255, 0.12);
+            border-color: #00ffff;
+        }
+        #toggle-sidebar .badge-count {
+            font-size: 9px;
+            background: rgba(255, 0, 255, 0.2);
+            padding: 1px 8px;
+            border-radius: 12px;
+            color: #ff88ff;
+        }
+
+        /* ── TOP HUD ── */
+        #top-hud {
+            position: fixed;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 15;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 18px 6px 16px;
+            border-radius: 40px;
+            background: rgba(10, 15, 30, 0.55);
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(0, 255, 255, 0.12);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        #top-hud .brand {
+            font-size: 14px;
+            font-weight: 900;
+            color: #88ffff;
+            letter-spacing: 0.1em;
+            font-family: 'Orbitron', sans-serif;
+            white-space: nowrap;
+        }
+        #top-hud .brand span {
+            color: #ff66ff;
+        }
+        #top-hud .hud-divider {
+            width: 1px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.08);
+        }
+        #top-hud .hud-stat {
+            font-size: 9px;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.5);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+        #top-hud .hud-stat strong {
+            color: #ff88ff;
+            font-weight: 700;
+        }
+        #top-hud .hud-stat .num {
+            color: #88ffff;
+            font-weight: 700;
+        }
+        #top-hud .hud-btn {
+            background: rgba(0, 255, 255, 0.08);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            color: #88ffff;
+            padding: 3px 12px;
+            border-radius: 16px;
+            font-size: 9px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+        #top-hud .hud-btn:hover {
+            background: rgba(0, 255, 255, 0.18);
+            border-color: #00ffff;
+        }
+        #top-hud .hud-btn.pink {
+            background: rgba(255, 0, 255, 0.08);
+            border-color: rgba(255, 0, 255, 0.2);
+            color: #ff88ff;
+        }
+        #top-hud .hud-btn.pink:hover {
+            background: rgba(255, 0, 255, 0.18);
+        }
+        #top-hud .hud-btn.view-toggle {
+            background: rgba(255, 200, 0, 0.08);
+            border-color: rgba(255, 200, 0, 0.2);
+            color: #ffdd44;
+        }
+        #top-hud .hud-btn.view-toggle:hover {
+            background: rgba(255, 200, 0, 0.18);
+        }
+        #top-hud .hud-btn.generate-helix {
+            background: rgba(0, 255, 100, 0.08);
+            border-color: rgba(0, 255, 100, 0.2);
+            color: #88ff88;
+        }
+        #top-hud .hud-btn.generate-helix:hover {
+            background: rgba(0, 255, 100, 0.18);
+        }
+
+        /* ── APP DOCK ── */
+        #app-dock {
+            position: fixed;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 30;
+            pointer-events: auto;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 40px;
+            background: rgba(5, 5, 18, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 255, 0.10);
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6);
+            max-width: 92vw;
+            overflow-x: auto;
+            flex-wrap: nowrap;
+            scrollbar-width: none;
+        }
+        #app-dock::-webkit-scrollbar {
+            display: none;
+        }
+        .dock-tab {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 14px 4px 10px;
+            border-radius: 24px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 9px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: 0.25s;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+        .dock-tab.active {
+            background: rgba(0, 255, 255, 0.10);
+            border-color: rgba(0, 255, 255, 0.30);
+            color: #88ffff;
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.04);
+        }
+        .dock-tab .tab-close {
+            background: none;
+            border: none;
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 12px;
+            cursor: pointer;
+            padding: 0 2px;
+            line-height: 1;
+            transition: 0.2s;
+        }
+        .dock-tab .tab-close:hover {
+            color: #ff4477;
+        }
+        .dock-tab .tab-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            display: inline-block;
+            flex-shrink: 0;
+        }
+        .dock-tab .tab-dot.pink {
+            background: #ff44ff;
+        }
+        .dock-tab .tab-dot.blue {
+            background: #44ffff;
+        }
+        .dock-tab .tab-dot.purple {
+            background: #aa66ff;
+        }
+        .dock-tab .tab-label {
+            max-width: 80px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        #app-dock .dock-add {
+            background: rgba(0, 255, 255, 0.06);
+            border: 1px dashed rgba(0, 255, 255, 0.15);
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: rgba(255, 255, 255, 0.25);
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.2s;
+            flex-shrink: 0;
+        }
+        #app-dock .dock-add:hover {
+            background: rgba(0, 255, 255, 0.12);
+            color: #88ffff;
+            border-color: #00ffff;
+        }
+
+        /* ── APP CANVAS ── */
+        #app-canvas-container {
+            position: fixed;
+            top: 72px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 92vw;
+            max-width: 1100px;
+            height: calc(100vh - 160px);
+            z-index: 18;
+            pointer-events: none;
+            display: none;
+            border-radius: 16px;
+            overflow: hidden;
+            background: rgba(2, 2, 8, 0.92);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(0, 255, 255, 0.08);
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.7);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #app-canvas-container.open {
+            display: flex;
+            flex-direction: column;
+            pointer-events: auto;
+        }
+        #app-canvas-container .canvas-header {
+            padding: 8px 16px;
+            background: rgba(0, 0, 0, 0.4);
+            border-bottom: 1px solid rgba(0, 255, 255, 0.06);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            min-height: 44px;
+        }
+        #app-canvas-container .canvas-header .title {
+            font-size: 11px;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        #app-canvas-container .canvas-header .title strong {
+            color: #88ffff;
+        }
+        #app-canvas-container .canvas-header .actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        #app-canvas-container .canvas-header .actions button {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            color: rgba(255, 255, 255, 0.3);
+            padding: 2px 12px;
+            border-radius: 14px;
+            font-size: 9px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #app-canvas-container .canvas-header .actions button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+        #app-canvas-container .canvas-body {
+            flex: 1;
+            position: relative;
+            overflow: hidden;
+            background: #030308;
+        }
+        #app-canvas-container .canvas-body iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #030308;
+        }
+        #app-canvas-container .canvas-body .placeholder {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: rgba(255, 255, 255, 0.08);
+            font-family: monospace;
+            font-size: 14px;
+            flex-direction: column;
+            gap: 8px;
+        }
+        #app-canvas-container .canvas-body .placeholder .big {
+            font-size: 40px;
+            opacity: 0.15;
+        }
+
+        /* ── NODE STUDIO MODAL ── */
+        #node-studio-modal {
+            position: fixed;
+            inset: 0;
+            z-index: 50;
+            background: rgba(2, 2, 10, 0.92);
+            backdrop-filter: blur(24px);
+            display: none;
+            flex-direction: column;
+            padding: 12px;
+        }
+        #node-studio-modal.open {
+            display: flex;
+        }
+        #node-studio-modal .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 4px 12px 4px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        #node-studio-modal .modal-header h2 {
+            font-size: 16px;
+            color: #88ffff;
+            font-family: 'Orbitron', sans-serif;
+            letter-spacing: 0.1em;
+        }
+        #node-studio-modal .modal-header .actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+        #node-studio-modal .modal-header .actions button {
+            padding: 4px 14px;
+            border-radius: 20px;
+            font-size: 10px;
+            font-family: monospace;
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            background: rgba(0, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #node-studio-modal .modal-header .actions button:hover {
+            background: rgba(0, 255, 255, 0.12);
+            color: #fff;
+        }
+        #node-studio-modal .modal-header .actions button.primary {
+            background: rgba(255, 0, 255, 0.08);
+            border-color: rgba(255, 0, 255, 0.2);
+            color: #ff88ff;
+        }
+        #node-studio-modal .modal-header .actions button.primary:hover {
+            background: rgba(255, 0, 255, 0.18);
+        }
+        #node-studio-modal .modal-header .actions button.timeline-toggle {
+            background: rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.2);
+            color: #88ffff;
+        }
+        #node-studio-modal .modal-header .actions button.timeline-toggle.active {
+            background: rgba(255, 0, 255, 0.15);
+            border-color: #ff44ff;
+            color: #ff88ff;
+        }
+        #node-studio-modal .modal-header .actions button.generate-helix {
+            background: rgba(0, 255, 100, 0.08);
+            border-color: rgba(0, 255, 100, 0.2);
+            color: #88ff88;
+        }
+        #node-studio-modal .modal-header .actions button.generate-helix:hover {
+            background: rgba(0, 255, 100, 0.18);
+        }
+
+        .studio-body {
+            flex: 1;
+            display: flex;
+            gap: 8px;
+            min-height: 0;
+        }
+        .studio-library {
+            width: 180px;
+            flex-shrink: 0;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            padding: 8px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .studio-library .lib-title {
+            font-size: 8px;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.1em;
+            font-family: monospace;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+            padding-bottom: 4px;
+            margin-bottom: 4px;
+        }
+        .studio-library .lib-item {
+            padding: 4px 8px;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            border-radius: 4px;
+            font-size: 9px;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.5);
+            cursor: grab;
+            transition: 0.15s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .studio-library .lib-item:hover {
+            background: rgba(255, 255, 255, 0.06);
+            color: #fff;
+        }
+        .studio-library .lib-item .color-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .studio-library .lib-item .lib-name {
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        #node-canvas {
+            flex: 1;
+            position: relative;
+            background: #05050f;
+            border-radius: 10px;
+            border: 1px solid rgba(0, 255, 255, 0.06);
+            overflow: hidden;
+            cursor: grab;
+            min-height: 200px;
+            touch-action: none;
+        }
+        #node-canvas:active {
+            cursor: grabbing;
+        }
+
+        .draggable-node {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            background: rgba(12, 16, 32, 0.88);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            padding: 8px 10px;
+            border-radius: 8px;
+            min-width: 100px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+            transition: box-shadow 0.2s, border-color 0.2s;
+            touch-action: none;
+            z-index: 5;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .draggable-node:hover {
+            box-shadow: 0 4px 30px rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.3);
+        }
+        .draggable-node .node-preview {
+            width: 100%;
+            height: 40px;
+            border-radius: 4px;
+            background: rgba(0, 0, 0, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.04);
+            overflow: hidden;
+            position: relative;
+        }
+        .draggable-node .node-preview canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+        .draggable-node .node-title {
+            font-size: 9px;
+            font-weight: 700;
+            color: #88ffff;
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .draggable-node .node-sub {
+            font-size: 7px;
+            color: rgba(255, 255, 255, 0.3);
+            font-family: monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .draggable-node .node-tag {
+            font-size: 6px;
+            background: rgba(255, 0, 255, 0.08);
+            padding: 1px 6px;
+            border-radius: 8px;
+            color: #ff88ff;
+            display: inline-block;
+            align-self: flex-start;
+        }
+        .draggable-node .node-connector {
+            position: absolute;
+            right: -6px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(0, 255, 255, 0.3);
+            background: rgba(0, 0, 0, 0.6);
+            cursor: crosshair;
+            transition: 0.2s;
+            z-index: 10;
+        }
+        .draggable-node .node-connector:hover {
+            border-color: #00ffff;
+            background: rgba(0, 255, 255, 0.15);
+            transform: translateY(-50%) scale(1.2);
+        }
+        .draggable-node .node-connector.active-source {
+            border-color: #ff44ff;
+            background: rgba(255, 0, 255, 0.2);
+            box-shadow: 0 0 12px #ff44ff66;
+        }
+        .draggable-node .node-edit-btn {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            border-radius: 4px;
+            color: rgba(255, 255, 255, 0.2);
+            font-size: 8px;
+            padding: 2px 4px;
+            cursor: pointer;
+            transition: 0.15s;
+            z-index: 6;
+        }
+        .draggable-node .node-edit-btn:hover {
+            color: #88ffff;
+            background: rgba(0, 255, 255, 0.1);
+        }
+
+        .path-menu {
+            position: absolute;
+            background: rgba(10, 10, 25, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 8px;
+            padding: 6px 0;
+            min-width: 140px;
+            z-index: 20;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+            display: none;
+        }
+        .path-menu .menu-item {
+            padding: 5px 14px;
+            font-size: 10px;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.7);
+            cursor: pointer;
+            transition: 0.15s;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+        .path-menu .menu-item:hover {
+            background: rgba(0, 255, 255, 0.08);
+            color: #88ffff;
+        }
+        .path-menu .menu-item:last-child {
+            border-bottom: none;
+        }
+
+        /* ── NODE EDITOR POPUP ── */
+        #node-editor-popup {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(12px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            pointer-events: auto;
+        }
+        #node-editor-popup.open {
+            display: flex;
+        }
+        #node-editor-popup .popup-content {
+            background: rgba(10, 10, 25, 0.95);
+            border: 1px solid rgba(0, 255, 255, 0.15);
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 440px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+            pointer-events: auto;
+        }
+        #node-editor-popup .popup-content h3 {
+            font-size: 16px;
+            font-family: 'Orbitron', sans-serif;
+            color: #88ffff;
+            margin-bottom: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+            padding-bottom: 8px;
+        }
+        #node-editor-popup .popup-content label {
+            font-size: 9px;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.3);
+            display: block;
+            margin-top: 8px;
+            margin-bottom: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        #node-editor-popup .popup-content input,
+        #node-editor-popup .popup-content textarea,
+        #node-editor-popup .popup-content select {
+            width: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 6px;
+            padding: 6px 10px;
+            color: #fff;
+            font-size: 11px;
+            font-family: monospace;
+            outline: none;
+            transition: 0.15s;
+        }
+        #node-editor-popup .popup-content input:focus,
+        #node-editor-popup .popup-content textarea:focus,
+        #node-editor-popup .popup-content select:focus {
+            border-color: #00ffff;
+        }
+        #node-editor-popup .popup-content textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        #node-editor-popup .popup-content .popup-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 16px;
+            justify-content: flex-end;
+        }
+        #node-editor-popup .popup-content .popup-actions button {
+            padding: 4px 16px;
+            border-radius: 16px;
+            font-size: 9px;
+            font-family: monospace;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            background: rgba(255, 255, 255, 0.04);
+            color: rgba(255, 255, 255, 0.6);
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #node-editor-popup .popup-content .popup-actions button:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+        #node-editor-popup .popup-content .popup-actions button.primary {
+            background: rgba(0, 255, 255, 0.08);
+            border-color: rgba(0, 255, 255, 0.2);
+            color: #88ffff;
+        }
+        #node-editor-popup .popup-content .popup-actions button.primary:hover {
+            background: rgba(0, 255, 255, 0.15);
+        }
+        #node-editor-popup .popup-content .popup-actions button.danger {
+            background: rgba(255, 0, 0, 0.08);
+            border-color: rgba(255, 0, 0, 0.2);
+            color: #ff6666;
+        }
+        #node-editor-popup .popup-content .popup-actions button.danger:hover {
+            background: rgba(255, 0, 0, 0.15);
+        }
+
+        /* ── GAMING JOYSTICKS ── */
+        #joystick-left,
+        #joystick-right {
+            position: fixed;
+            bottom: 80px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: rgba(10, 15, 30, 0.5);
+            backdrop-filter: blur(8px);
+            border: 2px solid rgba(0, 255, 255, 0.15);
+            box-shadow: 0 0 40px rgba(0, 255, 255, 0.05);
+            z-index: 35;
+            pointer-events: auto;
+            touch-action: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.4s;
+        }
+        #joystick-left {
+            left: 20px;
+        }
+        #joystick-right {
+            right: 20px;
+        }
+        #joystick-left .knob,
+        #joystick-right .knob {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 255, 0.3), rgba(0, 0, 0, 0.5));
+            border: 1px solid rgba(0, 255, 255, 0.3);
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+            pointer-events: none;
+            transition: transform 0.05s;
+        }
+        #joystick-left .label,
+        #joystick-right .label {
+            position: absolute;
+            bottom: -20px;
+            font-size: 8px;
+            font-family: monospace;
+            color: rgba(255, 255, 255, 0.2);
+            letter-spacing: 0.1em;
+        }
+        #joystick-left .label {
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        #joystick-right .label {
+            right: 50%;
+            transform: translateX(50%);
+        }
+
+        #center-btn {
+            position: fixed;
+            bottom: 195px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 36;
+            pointer-events: auto;
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(0, 255, 255, 0.2);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            color: #88ffff;
+            font-size: 18px;
+            cursor: pointer;
+            transition: 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #center-btn:hover {
+            background: rgba(0, 255, 255, 0.15);
+            border-color: #00ffff;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.1);
+        }
+
+        /* ── TOGGLE BUTTONS (Rings/Grid) ── */
+        #toggle-grids {
+            position: fixed;
+            bottom: 195px;
+            right: 20px;
+            z-index: 36;
+            pointer-events: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        #toggle-grids button {
+            background: rgba(10, 15, 30, 0.7);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 30px;
+            padding: 4px 12px;
+            color: rgba(255, 255, 255, 0.4);
+            font-size: 8px;
+            font-family: monospace;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        #toggle-grids button.active {
+            border-color: #00ffff;
+            color: #88ffff;
+            background: rgba(0, 255, 255, 0.08);
+        }
+        #toggle-grids button:hover {
+            background: rgba(255, 255, 255, 0.04);
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 768px) {
+            #repo-sidebar {
+                left: 6px;
+                top: 68px;
+                bottom: 80px;
+                width: 180px;
+            }
+            #repo-sidebar.collapsed {
+                transform: translateX(-200px);
+            }
+            #top-hud {
+                padding: 4px 12px;
+                gap: 6px;
+                top: 8px;
+                border-radius: 28px;
+                max-width: 94vw;
+            }
+            #top-hud .brand {
+                font-size: 11px;
+            }
+            #top-hud .hud-stat {
+                font-size: 7px;
+            }
+            #top-hud .hud-btn {
+                font-size: 7px;
+                padding: 2px 8px;
+            }
+            #toggle-sidebar {
+                left: 6px;
+                top: 8px;
+                padding: 4px 8px;
+                font-size: 14px;
+            }
+            #app-dock {
+                bottom: 10px;
+                padding: 4px 10px;
+                gap: 4px;
+                border-radius: 28px;
+                max-width: 96vw;
+            }
+            .dock-tab {
+                font-size: 7px;
+                padding: 3px 10px 3px 8px;
+            }
+            .dock-tab .tab-label {
+                max-width: 50px;
+            }
+            #app-canvas-container {
+                top: 60px;
+                width: 96vw;
+                height: calc(100vh - 120px);
+                border-radius: 10px;
+            }
+            #app-canvas-container .canvas-header .title {
+                font-size: 9px;
+            }
+            #app-canvas-container .canvas-header .actions button {
+                font-size: 7px;
+                padding: 1px 8px;
+            }
+            #node-studio-modal {
+                padding: 8px;
+            }
+            #node-studio-modal .modal-header h2 {
+                font-size: 12px;
+            }
+            .draggable-node {
+                padding: 6px 8px;
+                min-width: 80px;
+            }
+            .draggable-node .node-title {
+                font-size: 8px;
+            }
+            .draggable-node .node-sub {
+                font-size: 7px;
+            }
+            .studio-library {
+                width: 120px;
+                padding: 4px;
+            }
+            .studio-library .lib-item {
+                font-size: 8px;
+                padding: 3px 6px;
+            }
+            #node-editor-popup .popup-content {
+                padding: 16px;
+                max-width: 340px;
+            }
+            #joystick-left,
+            #joystick-right {
+                width: 70px;
+                height: 70px;
+                bottom: 70px;
+            }
+            #joystick-left .knob,
+            #joystick-right .knob {
+                width: 28px;
+                height: 28px;
+            }
+            #center-btn {
+                width: 34px;
+                height: 34px;
+                bottom: 175px;
+                font-size: 14px;
+            }
+            #toggle-grids {
+                bottom: 175px;
+                right: 10px;
+            }
+        }
+        @media (max-width: 480px) {
+            #repo-sidebar {
+                width: 150px;
+                left: 4px;
+                top: 58px;
+                bottom: 72px;
+            }
+            #repo-sidebar.collapsed {
+                transform: translateX(-170px);
+            }
+            .repo-item {
+                font-size: 9px;
+                padding: 4px 6px;
+            }
+            .repo-item .repo-name {
+                font-size: 8px;
+            }
+            .repo-item .html-badge {
+                font-size: 6px;
+                padding: 0 4px;
+            }
+            .repo-item .star-btn {
+                font-size: 11px;
+            }
+            #top-hud .brand {
+                font-size: 9px;
+            }
+            .dock-tab .tab-label {
+                max-width: 34px;
+            }
+            #app-dock .dock-add {
+                width: 22px;
+                height: 22px;
+                font-size: 12px;
+            }
+            .studio-library {
+                width: 90px;
+            }
+            .studio-library .lib-item {
+                font-size: 7px;
+                padding: 2px 4px;
+            }
+            #joystick-left,
+            #joystick-right {
+                width: 60px;
+                height: 60px;
+                bottom: 60px;
+            }
+            #joystick-left .knob,
+            #joystick-right .knob {
+                width: 24px;
+                height: 24px;
+            }
+            #center-btn {
+                width: 30px;
+                height: 30px;
+                bottom: 155px;
+                font-size: 12px;
+            }
+            #toggle-grids {
+                bottom: 155px;
+                right: 6px;
+            }
+            #toggle-grids button {
+                font-size: 6px;
+                padding: 2px 8px;
+            }
+        }
+
+        /* ── SCROLLBAR UTILITY ── */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+
+        /* ── MINI TOAST ── */
+        #toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            z-index: 60;
+            padding: 8px 20px;
+            border-radius: 30px;
+            background: rgba(10, 15, 30, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(0, 255, 255, 0.10);
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 11px;
+            font-family: monospace;
+            opacity: 0;
+            transition: opacity 0.4s, transform 0.4s;
+            pointer-events: none;
+        }
+        #toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+    </style>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+
+    <!-- 3D Canvas -->
+    <div id="canvas-container"></div>
+    <div class="scanline"></div>
+
+    <!-- ─── UI LAYER ─── -->
+    <div id="ui-layer">
+
+        <!-- Toggle Sidebar -->
+        <button id="toggle-sidebar" class="clickable" onclick="toggleSidebar()">
+            <span>≡</span>
+            <span class="badge-count" id="sidebar-badge">42</span>
+        </button>
+
+        <!-- Top HUD -->
+        <div id="top-hud" class="clickable">
+            <span class="brand">🧬 HELIX<span>·</span>WP</span>
+            <span class="hud-divider"></span>
+            <span class="hud-stat">APPS <strong id="active-count">0</strong>/10</span>
+            <span class="hud-divider"></span>
+            <span class="hud-stat">⭐ <span id="star-count">0</span></span>
+            <span class="hud-divider"></span>
+            <button class="hud-btn view-toggle" id="view-toggle-btn" onclick="toggleView()">🔭 HELIX</button>
+            <button class="hud-btn" onclick="openNodeStudio()">✦ NODES</button>
+            <button class="hud-btn generate-helix" onclick="generateHelixFromCanvas()">🌀 GENERATE</button>
+            <button class="hud-btn pink" onclick="exportSession()">⬇ SAVE</button>
+            <button class="hud-btn" onclick="document.getElementById('import-session-input').click()">⬆ LOAD</button>
+            <input type="file" id="import-session-input" accept=".json" style="display:none" onchange="importSession(event)" />
+            <span class="hud-divider"></span>
+            <span class="hud-stat" id="focus-label" style="color:rgba(255,255,255,0.3);">🌐 core</span>
+        </div>
+
+        <!-- Left Sidebar: Repositories -->
+        <div id="repo-sidebar" class="glass-panel-dark clickable">
+            <div class="sidebar-header">
+                <h3>📁 REPOSITORIES</h3>
+                <div class="sub" id="repo-count-display">loading...</div>
+                <div style="margin-top:6px;">
+                    <select id="sort-options" onchange="applySort()">
+                        <option value="name">Sort: Name</option>
+                        <option value="color">Sort: Color</option>
+                        <option value="id">Sort: Default</option>
+                    </select>
+                </div>
+            </div>
+            <div id="repo-list-container" class="scrollbar-hide"></div>
+        </div>
+
+        <!-- App Canvas -->
+        <div id="app-canvas-container">
+            <div class="canvas-header">
+                <span class="title" id="canvas-title">📄 <strong id="canvas-repo-name">—</strong> · <span id="canvas-html-name">—</span></span>
+                <div class="actions">
+                    <button onclick="closeCanvas()">✕ CLOSE</button>
+                </div>
+            </div>
+            <div class="canvas-body" id="canvas-body">
+                <div class="placeholder" id="canvas-placeholder">
+                    <span class="big">🧬</span>
+                    <span>select a .html dot to launch</span>
+                </div>
+                <iframe id="canvas-iframe" style="display:none;width:100%;height:100%;border:none;background:#030308;"></iframe>
+            </div>
+        </div>
+
+        <!-- App Dock -->
+        <div id="app-dock" class="clickable">
+            <div class="dock-add" onclick="openCurrentFocusApp()" title="Launch focused app">+</div>
+        </div>
+
+        <!-- Node Studio Modal -->
+        <div id="node-studio-modal">
+            <div class="modal-header">
+                <h2>✦ NODE STUDIO</h2>
+                <div class="actions">
+                    <button onclick="toggleTimelineLayout()" class="timeline-toggle" id="timeline-toggle-btn">⏱ TIMELINE</button>
+                    <button onclick="generateHelixFromCanvas()" class="generate-helix">🌀 GENERATE HELIX</button>
+                    <button onclick="saveNodeCanvasAsHTML()" class="primary">⬇ EXPORT</button>
+                    <button onclick="clearNodeCanvas()">🗑 CLEAR</button>
+                    <button onclick="closeNodeStudio()">✕ CLOSE</button>
+                </div>
+            </div>
+            <div class="studio-body">
+                <div class="studio-library" id="studio-library">
+                    <div class="lib-title">📚 Library</div>
+                    <div id="library-list"></div>
+                </div>
+                <div id="node-canvas" ondragover="allowDrop(event)" ondrop="dropNode(event)">
+                    <svg id="node-svg-connections" style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:0;"></svg>
+                    <div id="path-menu" class="path-menu"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Node Editor Popup -->
+        <div id="node-editor-popup">
+            <div class="popup-content">
+                <h3>✎ EDIT NODE</h3>
+                <label>Name</label>
+                <input type="text" id="edit-node-name" />
+                <label>Color</label>
+                <select id="edit-node-color">
+                    <option value="pink">Pink</option>
+                    <option value="blue">Blue</option>
+                    <option value="purple">Purple</option>
+                </select>
+                <label>Description</label>
+                <textarea id="edit-node-desc" placeholder="Describe this node..."></textarea>
+                <label>Events / Triggers</label>
+                <textarea id="edit-node-events" placeholder="e.g. on click → launch app, on hover → show info"></textarea>
+                <label>Tags (comma separated)</label>
+                <input type="text" id="edit-node-tags" placeholder="tag1, tag2" />
+                <div class="popup-actions">
+                    <button class="danger" onclick="deleteNodeFromEditor()">🗑 DELETE</button>
+                    <button onclick="closeNodeEditor()">CANCEL</button>
+                    <button class="primary" onclick="saveNodeEditor()">💾 SAVE</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gaming Joysticks -->
+        <div id="joystick-left">
+            <div class="knob" id="left-knob"></div>
+            <span class="label">ORBIT</span>
+        </div>
+        <div id="joystick-right">
+            <div class="knob" id="right-knob"></div>
+            <span class="label">ZOOM</span>
+        </div>
+        <button id="center-btn" onclick="resetCamera()" title="Center View">⟲</button>
+
+        <!-- Toggle Grids / Rings -->
+        <div id="toggle-grids">
+            <button class="active" id="toggle-rings" onclick="toggleRings()">⭕ RINGS</button>
+            <button class="active" id="toggle-grid" onclick="toggleGrid()">⊞ GRID</button>
+        </div>
+
+        <!-- Toast -->
+        <div id="toast"></div>
+    </div>
+
+    <!-- ─── THREE.JS MODULE ─── -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x020205);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        // Lights
+        const ambient = new THREE.AmbientLight(0x446688, 0.6);
+        scene.add(ambient);
+        const key = new THREE.DirectionalLight(0x88ffff, 1.8);
+        key.position.set(5, 10, 7);
+        scene.add(key);
+        const fill = new THREE.DirectionalLight(0xff66ff, 0.8);
+        fill.position.set(-5, 0, 5);
+        scene.add(fill);
+        const rim = new THREE.DirectionalLight(0xaa66ff, 0.6);
+        rim.position.set(0, -5, -8);
+        scene.add(rim);
+
+        // Helix Group
+        const helixGroup = new THREE.Group();
+        scene.add(helixGroup);
+
+        // Particles with gravity feel
+        const particleGeo = new THREE.BufferGeometry();
+        const particleCount = 1200;
+        const pos = new Float32Array(particleCount * 3);
+        const velocities = [];
+        for (let i = 0; i < particleCount * 3; i++) {
+            pos[i] = (Math.random() - 0.5) * 80;
+            if (i % 3 === 2) velocities.push((Math.random() - 0.5) * 0.01);
+        }
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+        const particleMat = new THREE.PointsMaterial({
+            color: 0x446688,
+            size: 0.06,
+            transparent: true,
+            opacity: 0.6,
+            blending: THREE.AdditiveBlending,
+        });
+        const particles = new THREE.Points(particleGeo, particleMat);
+        scene.add(particles);
+
+        // Core sphere
+        const coreGeo = new THREE.SphereGeometry(0.5, 24, 24);
+        const coreMat = new THREE.MeshStandardMaterial({
+            color: 0x8844ff,
+            emissive: 0x8844ff,
+            emissiveIntensity: 0.8,
+            transparent: true,
+            opacity: 0.9,
+        });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.set(0, 0, 0);
+        helixGroup.add(core);
+
+        const glowGeo = new THREE.SphereGeometry(0.7, 24, 24);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color: 0x8844ff,
+            transparent: true,
+            opacity: 0.2,
+            blending: THREE.AdditiveBlending,
+        });
+        const glow = new THREE.Mesh(glowGeo, glowMat);
+        glow.position.set(0, 0, 0);
+        helixGroup.add(glow);
+
+        // ── Rings & Grid ──
+        let ringObjects = [];
+        let gridHelper = null;
+
+        function buildRings() {
+            ringObjects.forEach(r => helixGroup.remove(r));
+            ringObjects = [];
+            for (let r = 0; r < 3; r++) {
+                const ringGeo = new THREE.TorusGeometry(2.8 + r * 1.2, 0.015, 12, 40);
+                const ringMat = new THREE.MeshStandardMaterial({
+                    color: [0xff44ff, 0x44ffff, 0xaa66ff][r],
+                    emissive: [0xff44ff, 0x44ffff, 0xaa66ff][r],
+                    emissiveIntensity: 0.15,
+                    transparent: true,
+                    opacity: 0.3,
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.rotation.x = Math.PI / 3 + r * 0.4;
+                ring.rotation.z = r * 0.5;
+                ring.userData.isRing = true;
+                helixGroup.add(ring);
+                ringObjects.push(ring);
+            }
+        }
+
+        function buildGrid() {
+            if (gridHelper) scene.remove(gridHelper);
+            gridHelper = new THREE.GridHelper(30, 30, 0x8844ff, 0x446688);
+            gridHelper.material.transparent = true;
+            gridHelper.material.opacity = 0.15;
+            gridHelper.position.y = -5;
+            scene.add(gridHelper);
+        }
+
+        buildRings();
+        buildGrid();
+
+        // ── Generate Sphere Preview Texture ──
+        function createSphereTexture(repo) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+            // Background
+            const grad = ctx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            grad.addColorStop(0, '#0a0a1a');
+            grad.addColorStop(1, '#020205');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 128, 128);
+
+            // Border Glow
+            const colorMap = { pink: '#ff44ff', blue: '#44ffff', purple: '#aa66ff' };
+            const mainColor = colorMap[repo.color] || '#888888';
+            ctx.shadowColor = mainColor;
+            ctx.shadowBlur = 20;
+            ctx.strokeStyle = mainColor;
+            ctx.lineWidth = 4;
+            ctx.strokeRect(10, 10, 108, 108);
+            ctx.shadowBlur = 0;
+
+            // Name
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Orbitron, monospace';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(repo.name.slice(0, 8), 64, 50);
+
+            // Status
+            ctx.fillStyle = mainColor;
+            ctx.font = '10px monospace';
+            ctx.fillText('● ONLINE', 64, 80);
+
+            // Icon
+            ctx.font = '24px sans-serif';
+            ctx.fillText('🧬', 64, 110);
+
+            // Small dots
+            for (let i = 0; i < 12; i++) {
+                const angle = (i / 12) * Math.PI * 2;
+                const x = 64 + Math.cos(angle) * 50;
+                const y = 64 + Math.sin(angle) * 50;
+                ctx.fillStyle = mainColor;
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = mainColor;
+                ctx.beginPath();
+                ctx.arc(x, y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // ── Build Helix ──
+        function buildHelix(repos, viewMode = currentView) {
+            while (helixGroup.children.length > 0) {
+                const child = helixGroup.children[0];
+                if (child.userData.isRing) {
+                    // Keep rings separate? We'll rebuild them later.
+                }
+                helixGroup.remove(child);
+            }
+            // Re-add core, glow, and rings
+            helixGroup.add(core);
+            helixGroup.add(glow);
+            ringObjects.forEach(r => helixGroup.add(r));
+
+            repoMeshes.length = 0;
+
+            const count = repos.length;
+            const colors = {
+                pink: 0xff44ff,
+                blue: 0x44ffff,
+                purple: 0xaa66ff
+            };
+
+            repos.forEach((repo, i) => {
+                let x, y, z;
+                const radius = 3.2 + Math.sin(i * 0.15) * 0.4;
+                if (viewMode === 'sonar') {
+                    const angle = i * 0.8;
+                    const ring = Math.floor(i / 8) + 1;
+                    const r = 1.5 + ring * 1.2;
+                    x = Math.cos(angle) * r;
+                    z = Math.sin(angle) * r;
+                    y = 0;
+                } else {
+                    const theta = i * 0.35;
+                    y = (i - count / 2) * 0.55;
+                    x = Math.cos(theta) * radius;
+                    z = Math.sin(theta) * radius;
+                }
+
+                const colorHex = colors[repo.color] || 0x888888;
+                const texture = createSphereTexture(repo);
+
+                const geo = new THREE.SphereGeometry(0.28, 24, 24);
+                const mat = new THREE.MeshStandardMaterial({
+                    map: texture,
+                    color: 0xffffff,
+                    emissive: colorHex,
+                    emissiveIntensity: 0.15,
+                    roughness: 0.3,
+                    metalness: 0.6,
+                });
+                const sphere = new THREE.Mesh(geo, mat);
+                sphere.position.set(x, y, z);
+                sphere.userData = {
+                    repoId: repo.id,
+                    color: repo.color,
+                    label: repo.name,
+                    html: repo.html,
+                    originalPos: new THREE.Vector3(x, y, z)
+                };
+                helixGroup.add(sphere);
+                repoMeshes.push(sphere);
+
+                // Ring around sphere
+                const ringGeo = new THREE.TorusGeometry(0.32, 0.015, 8, 20);
+                const ringMat = new THREE.MeshStandardMaterial({
+                    color: colorHex,
+                    emissive: colorHex,
+                    emissiveIntensity: 0.2,
+                    transparent: true,
+                    opacity: 0.5,
+                });
+                const ring = new THREE.Mesh(ringGeo, ringMat);
+                ring.position.copy(sphere.position);
+                ring.rotation.x = Math.PI / 2 + i * 0.1;
+                ring.rotation.z = i * 0.08;
+                helixGroup.add(ring);
+            });
+
+            updateCameraView(viewMode);
+        }
+
+        let currentView = 'helix';
+        let repoMeshes = [];
+        let beamLine = null;
+        let targetCameraPos = new THREE.Vector3(0, 1, 14);
+        let targetLookAt = new THREE.Vector3(0, 0, 0);
+
+        // ── Camera Helpers ──
+        function updateCameraView(mode) {
+            if (mode === 'sonar') {
+                targetCameraPos.set(0, 12, 0.01);
+                targetLookAt.set(0, 0, 0);
+            } else {
+                targetCameraPos.set(0, 1, 14);
+                targetLookAt.set(0, 0, 0);
+            }
+            window.cameraTarget = targetLookAt;
+            window.cameraPosition = targetCameraPos;
+        }
+
+        // ── Toggle view ──
+        window.toggleView = function() {
+            currentView = (currentView === 'helix') ? 'sonar' : 'helix';
+            document.getElementById('view-toggle-btn').textContent = currentView === 'helix' ? '🔭 HELIX' : '📡 SONAR';
+            const repos = window.REPOS || [];
+            buildHelix(repos, currentView);
+            if (window.focusedRepoId) {
+                focusOnRepo(window.focusedRepoId);
+            }
+            showToast(`View: ${currentView.toUpperCase()}`);
+        };
+
+        // ── Focus on repo ──
+        function focusOnRepo(repoId) {
+            const mesh = repoMeshes.find(m => m.userData.repoId === repoId);
+            if (!mesh) return;
+            const targetPos = mesh.position.clone();
+            const offset = new THREE.Vector3(1.5, 0.5, 2.5);
+            const worldPos = targetPos.clone().add(offset);
+            window.cameraTarget = targetPos;
+            window.cameraPosition = worldPos;
+            if (beamLine) {
+                helixGroup.remove(beamLine);
+                beamLine = null;
+            }
+            const points = [
+                new THREE.Vector3(0, 0, 0),
+                targetPos.clone()
+            ];
+            const curve = new THREE.CatmullRomCurve3(points);
+            const tubeGeo = new THREE.TubeGeometry(curve, 20, 0.02, 8, false);
+            const tubeMat = new THREE.MeshBasicMaterial({
+                color: 0x8844ff,
+                transparent: true,
+                opacity: 0.5,
+                blending: THREE.AdditiveBlending,
+            });
+            beamLine = new THREE.Mesh(tubeGeo, tubeMat);
+            helixGroup.add(beamLine);
+        }
+
+        // ── Reset Camera ──
+        window.resetCamera = function() {
+            window.cameraTarget = new THREE.Vector3(0, 0, 0);
+            window.cameraPosition = new THREE.Vector3(0, 1, 14);
+            controls.target.set(0, 0, 0);
+            showToast('⟲ Centered');
+        };
+
+        // ── Toggle Rings ──
+        window.toggleRings = function() {
+            const btn = document.getElementById('toggle-rings');
+            const visible = ringObjects.some(r => r.visible);
+            ringObjects.forEach(r => r.visible = !visible);
+            btn.classList.toggle('active');
+            showToast(visible ? '⭕ Rings hidden' : '⭕ Rings shown');
+        };
+
+        // ── Toggle Grid ──
+        window.toggleGrid = function() {
+            const btn = document.getElementById('toggle-grid');
+            gridHelper.visible = !gridHelper.visible;
+            btn.classList.toggle('active');
+            showToast(gridHelper.visible ? '⊞ Grid shown' : '⊞ Grid hidden');
+        };
+
+        // ── Controls ──
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.08;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.6;
+        controls.enableZoom = true;
+        controls.target.set(0, 0, 0);
+        controls.maxPolarAngle = Math.PI / 2;
+        controls.minDistance = 3;
+        controls.maxDistance = 25;
+
+        // ── Joystick Logic ──
+        let leftJoystickActive = false;
+        let rightJoystickActive = false;
+        let leftTouchId = null;
+        let rightTouchId = null;
+
+        const leftJoystick = document.getElementById('joystick-left');
+        const rightJoystick = document.getElementById('joystick-right');
+        const leftKnob = document.getElementById('left-knob');
+        const rightKnob = document.getElementById('right-knob');
+
+        function handleJoystickStart(e, isLeft) {
+            const touch = e.changedTouches[0];
+            if (!touch) return;
+            const el = isLeft ? leftJoystick : rightJoystick;
+            const rect = el.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const dx = touch.clientX - centerX;
+            const dy = touch.clientY - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const maxDist = rect.width / 2 - 10;
+            const clampedDist = Math.min(dist, maxDist);
+            const angle = Math.atan2(dy, dx);
+
+            const knob = isLeft ? leftKnob : rightKnob;
+            knob.style.transform = `translate(${Math.cos(angle) * clampedDist}px, ${Math.sin(angle) * clampedDist}px)`;
+
+            const normX = (Math.cos(angle) * clampedDist) / maxDist;
+            const normY = (Math.sin(angle) * clampedDist) / maxDist;
+
+            if (isLeft) {
+                controls.autoRotate = false;
+                const rotSpeed = 0.02;
+                controls.target.x += normX * rotSpeed;
+                controls.target.z += normY * rotSpeed;
+            } else {
+                const zoomSpeed = 0.1;
+                camera.position.z += normY * zoomSpeed;
+                camera.position.z = Math.max(3, Math.min(25, camera.position.z));
+                camera.position.x += normX * zoomSpeed * 0.5;
+                camera.position.x = Math.max(-15, Math.min(15, camera.position.x));
+            }
+
+            if (isLeft) {
+                leftJoystickActive = true;
+                leftTouchId = touch.identifier;
+            } else {
+                rightJoystickActive = true;
+                rightTouchId = touch.identifier;
+            }
+            e.preventDefault();
+        }
+
+        function handleJoystickMove(e, isLeft) {
+            const touch = Array.from(e.changedTouches).find(t => t.identifier === (isLeft ? leftTouchId : rightTouchId));
+            if (!touch) return;
+            const el = isLeft ? leftJoystick : rightJoystick;
+            const rect = el.getBoundingClientRect();
+            const centerX = rect.left + rect.width / 2;
+            const centerY = rect.top + rect.height / 2;
+            const dx = touch.clientX - centerX;
+            const dy = touch.clientY - centerY;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const maxDist = rect.width / 2 - 10;
+            const clampedDist = Math.min(dist, maxDist);
+            const angle = Math.atan2(dy, dx);
+
+            const knob = isLeft ? leftKnob : rightKnob;
+            knob.style.transform = `translate(${Math.cos(angle) * clampedDist}px, ${Math.sin(angle) * clampedDist}px)`;
+
+            const normX = (Math.cos(angle) * clampedDist) / maxDist;
+            const normY = (Math.sin(angle) * clampedDist) / maxDist;
+
+            if (isLeft) {
+                controls.autoRotate = false;
+                const rotSpeed = 0.02;
+                controls.target.x += normX * rotSpeed;
+                controls.target.z += normY * rotSpeed;
+            } else {
+                const zoomSpeed = 0.1;
+                camera.position.z += normY * zoomSpeed;
+                camera.position.z = Math.max(3, Math.min(25, camera.position.z));
+                camera.position.x += normX * zoomSpeed * 0.5;
+                camera.position.x = Math.max(-15, Math.min(15, camera.position.x));
+            }
+            e.preventDefault();
+        }
+
+        function handleJoystickEnd(e, isLeft) {
+            const knob = isLeft ? leftKnob : rightKnob;
+            knob.style.transform = 'translate(0px, 0px)';
+            if (isLeft) {
+                leftJoystickActive = false;
+                leftTouchId = null;
+                // Re-enable auto-rotate after a moment
+                setTimeout(() => { if (!leftJoystickActive) controls.autoRotate = true; }, 2000);
+            } else {
+                rightJoystickActive = false;
+                rightTouchId = null;
+            }
+            e.preventDefault();
+        }
+
+        leftJoystick.addEventListener('touchstart', (e) => handleJoystickStart(e, true));
+        leftJoystick.addEventListener('touchmove', (e) => handleJoystickMove(e, true));
+        leftJoystick.addEventListener('touchend', (e) => handleJoystickEnd(e, true));
+        leftJoystick.addEventListener('touchcancel', (e) => handleJoystickEnd(e, true));
+
+        rightJoystick.addEventListener('touchstart', (e) => handleJoystickStart(e, false));
+        rightJoystick.addEventListener('touchmove', (e) => handleJoystickMove(e, false));
+        rightJoystick.addEventListener('touchend', (e) => handleJoystickEnd(e, false));
+        rightJoystick.addEventListener('touchcancel', (e) => handleJoystickEnd(e, false));
+
+        // ── Raycaster for click ──
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function onPointerDown(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            mouse.set(x, y);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(repoMeshes);
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                const repoId = hit.userData.repoId;
+                if (repoId) {
+                    focusOnRepo(repoId);
+                    window.focusRepo(repoId);
+                }
+            }
+        }
+
+        renderer.domElement.addEventListener('click', onPointerDown);
+        renderer.domElement.addEventListener('dblclick', (event) => {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            mouse.set(x, y);
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(repoMeshes);
+            if (intersects.length > 0) {
+                const hit = intersects[0].object;
+                const pos = hit.position.clone();
+                const zoomPos = pos.clone().add(new THREE.Vector3(0, 0, 3));
+                window.cameraPosition = zoomPos;
+                window.cameraTarget = pos;
+                showToast(`🔍 Zoom: ${hit.userData.label}`);
+            }
+        });
+
+        renderer.domElement.addEventListener('touchstart', (e) => {
+            if (e.target.closest('#joystick-left') || e.target.closest('#joystick-right') || e.target.closest(
+                    '#center-btn') || e.target.closest('#toggle-grids')) return;
+            const touch = e.changedTouches[0];
+            if (touch) {
+                const rect = renderer.domElement.getBoundingClientRect();
+                const x = ((touch.clientX - rect.left) / rect.width) * 2 - 1;
+                const y = -((touch.clientY - rect.top) / rect.height) * 2 + 1;
+                mouse.set(x, y);
+                raycaster.setFromCamera(mouse, camera);
+                const intersects = raycaster.intersectObjects(repoMeshes);
+                if (intersects.length > 0) {
+                    const hit = intersects[0].object;
+                    const repoId = hit.userData.repoId;
+                    if (repoId) {
+                        focusOnRepo(repoId);
+                        window.focusRepo(repoId);
+                    }
+                }
+            }
+        }, { passive: true });
+
+        // ── Resize ──
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ── Animation Loop ──
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update();
+
+            // Particles with gravity flow
+            const positions = particles.geometry.attributes.position.array;
+            const time = Date.now() * 0.0001;
+            for (let i = 0; i < particleCount; i++) {
+                const idx = i * 3;
+                positions[idx + 1] += Math.sin(time + positions[idx]) * 0.002;
+                positions[idx] += Math.cos(time + positions[idx + 2]) * 0.002;
+                positions[idx + 2] += Math.sin(time + positions[idx + 1]) * 0.002;
+                // Keep in bounds
+                if (Math.abs(positions[idx]) > 40) positions[idx] *= -0.9;
+                if (Math.abs(positions[idx + 1]) > 40) positions[idx + 1] *= -0.9;
+                if (Math.abs(positions[idx + 2]) > 40) positions[idx + 2] *= -0.9;
+            }
+            particles.geometry.attributes.position.needsUpdate = true;
+
+            // Core pulse
+            const pulse = 1 + Math.sin(Date.now() * 0.0015) * 0.05;
+            core.scale.setScalar(pulse);
+            glow.scale.setScalar(1 + Math.sin(Date.now() * 0.001) * 0.1);
+            glowMat.opacity = 0.2 + Math.sin(Date.now() * 0.001) * 0.05;
+
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // ── Expose ──
+        window.__helix = {
+            scene,
+            camera,
+            renderer,
+            helixGroup,
+            core,
+            buildHelix,
+            focusOnRepo,
+            repoMeshes,
+            controls,
+            currentView,
+            toggleView: window.toggleView,
+            updateCameraView
+        };
+    </script>
+
+    <!-- ─── APPLICATION LOGIC ─── -->
+    <script>
+        // ── Repository Data ──
+        const STATIC_REPOS = [
+            { id: 1, name: 'GAme', html: 'https://worldpeacebtn.github.io/GAme/inDExStory.html', color: 'pink' },
+            { id: 2, name: '- (LIBRA)', html: 'https://worldpeacebtn.github.io/-/RENEW.html', color: 'blue' },
+            { id: 3, name: 'DOT0', html: 'https://worldpeacebtn.github.io/DOT0/index.html', color: 'purple' },
+            { id: 4, name: 'CONNECT', html: 'https://worldpeacebtn.github.io/CONNECT/index.html', color: 'purple' },
+            { id: 5, name: 'COMPS', html: 'https://worldpeacebtn.github.io/COMPS/index.html', color: 'purple' },
+            { id: 6, name: 'GAmeHUD', html: 'https://worldpeacebtn.github.io/GAmeHUD/index.html', color: 'pink' },
+            { id: 7, name: 'APEXVIRUZ', html: 'https://worldpeacebtn.github.io/APEXVIRUZ/index.html', color: 'pink' },
+            { id: 8, name: 'GUIDE', html: 'https://worldpeacebtn.github.io/GUIDE/index.html', color: 'blue' },
+            { id: 9, name: 'WAVE', html: 'https://worldpeacebtn.github.io/WAVE/index.html', color: 'blue' },
+            { id: 10, name: 'BaBelKey', html: 'https://worldpeacebtn.github.io/BaBelKey/index.html', color: 'purple' },
+            { id: 11, name: '42', html: 'https://worldpeacebtn.github.io/42/index.html', color: 'purple' },
+            { id: 12, name: 'PLAN', html: 'https://worldpeacebtn.github.io/PLAN/index.html', color: 'purple' },
+            { id: 13, name: 'Ai', html: 'https://worldpeacebtn.github.io/Ai/index.html', color: 'blue' },
+            { id: 14, name: 'ECODUSYS', html: 'https://worldpeacebtn.github.io/ECODUSYS/index.html', color: 'blue' },
+            { id: 15, name: 'NE0xST0RY', html: 'https://worldpeacebtn.github.io/NE0xST0RY/index.html', color: 'pink' },
+            { id: 16, name: 'HIVEMIND', html: 'https://worldpeacebtn.github.io/HIVEMIND/index.html', color: 'purple' },
+            { id: 17, name: 'CosmicTrans', html: 'https://worldpeacebtn.github.io/CosmicTrans/index.html', color: 'purple' },
+            { id: 18, name: 'casex', html: 'https://worldpeacebtn.github.io/casex/index.html', color: 'purple' },
+            { id: 19, name: 'X', html: 'https://worldpeacebtn.github.io/X/index.html', color: 'purple' },
+            { id: 20, name: 'Peace-Orb', html: 'https://worldpeacebtn.github.io/Peace-Orb/index.html', color: 'pink' },
+        ];
+
+        let REPOS = [...STATIC_REPOS];
+        let remixItems = [];
+
+        // ── Fetch real repos ──
+        async function fetchRepos() {
+            try {
+                const response = await fetch('https://api.github.com/users/worldpeacebtn/repos?per_page=100');
+                if (!response.ok) throw new Error('GitHub API error');
+                const data = await response.json();
+                const fetched = data.map((repo, i) => {
+                    let color = 'purple';
+                    const name = repo.name.toLowerCase();
+                    if (name.includes('game') || name.includes('apex') || name.includes('combat') || name.includes(
+                            'viruz') || name.includes('orb')) {
+                        color = 'pink';
+                    } else if (name.includes('libra') || name.includes('renew') || name.includes('guide') || name
+                        .includes('wave') || name.includes('hud') || name.includes('media')) {
+                        color = 'blue';
+                    } else {
+                        color = 'purple';
+                    }
+                    let html = `https://worldpeacebtn.github.io/${repo.name}/index.html`;
+                    if (repo.name === '-') {
+                        html = 'https://worldpeacebtn.github.io/-/RENEW.html';
+                    } else if (repo.name === 'GAme') {
+                        html = 'https://worldpeacebtn.github.io/GAme/inDExStory.html';
+                    }
+                    return {
+                        id: i + 1,
+                        name: repo.name,
+                        html: html,
+                        color: color,
+                        description: repo.description || ''
+                    };
+                });
+                const existingNames = new Set(STATIC_REPOS.map(r => r.name));
+                const newRepos = fetched.filter(r => !existingNames.has(r.name));
+                REPOS = [...STATIC_REPOS, ...newRepos];
+                REPOS.sort((a, b) => a.name.localeCompare(b.name));
+                remixItems = REPOS.map(r => ({ ...r, tag: r.color }));
+                renderRepos();
+                if (window.__helix) {
+                    window.__helix.buildHelix(REPOS);
+                }
+                document.getElementById('repo-count-display').textContent = `${REPOS.length} repositories`;
+                if (REPOS.length > 0) focusRepo(REPOS[0].id);
+                showToast(`✅ Loaded ${REPOS.length} repositories`);
+            } catch (err) {
+                console.warn('Using static repos', err);
+                REPOS = [...STATIC_REPOS];
+                remixItems = REPOS.map(r => ({ ...r, tag: r.color }));
+                renderRepos();
+                if (window.__helix) {
+                    window.__helix.buildHelix(REPOS);
+                }
+                document.getElementById('repo-count-display').textContent = `${REPOS.length} repositories (static)`;
+                if (REPOS.length > 0) focusRepo(REPOS[0].id);
+                showToast(`📁 Using static repo list (${REPOS.length})`);
+            }
+        }
+
+        // ── State ──
+        let activeAppIds = [];
+        let focusedRepoId = 1;
+        let isSidebarOpen = true;
+        let nodeConnections = [];
+        let timelineMode = false;
+        let connectSourceNodeId = null;
+        let canvasNodes = [];
+
+        // ── DOM refs ──
+        const repoContainer = document.getElementById('repo-list-container');
+        const dockEl = document.getElementById('app-dock');
+        const activeCountEl = document.getElementById('active-count');
+        const starCountEl = document.getElementById('star-count');
+        const focusLabel = document.getElementById('focus-label');
+        const canvasContainer = document.getElementById('app-canvas-container');
+        const canvasIframe = document.getElementById('canvas-iframe');
+        const canvasPlaceholder = document.getElementById('canvas-placeholder');
+        const canvasRepoName = document.getElementById('canvas-repo-name');
+        const canvasHtmlName = document.getElementById('canvas-html-name');
+        const toastEl = document.getElementById('toast');
+        const pathMenu = document.getElementById('path-menu');
+        const libraryList = document.getElementById('library-list');
+        const nodeCanvas = document.getElementById('node-canvas');
+        const editorPopup = document.getElementById('node-editor-popup');
+        let editingNodeId = null;
+
+        // ── Sort Function ──
+        function applySort() {
+            const sortBy = document.getElementById('sort-options').value;
+            if (sortBy === 'name') {
+                REPOS.sort((a, b) => a.name.localeCompare(b.name));
+            } else if (sortBy === 'color') {
+                const colorOrder = { pink: 0, blue: 1, purple: 2 };
+                REPOS.sort((a, b) => colorOrder[a.color] - colorOrder[b.color]);
+            } else {
+                REPOS.sort((a, b) => a.id - b.id);
+            }
+            renderRepos();
+            if (window.__helix) {
+                window.__helix.buildHelix(REPOS);
+                if (focusedRepoId) window.__helix.focusOnRepo(focusedRepoId);
+            }
+        }
+
+        // ── Render Repositories ──
+        function renderRepos() {
+            repoContainer.innerHTML = '';
+            REPOS.forEach(repo => {
+                const div = document.createElement('div');
+                div.className = 'repo-item';
+                div.dataset.id = repo.id;
+                const dot = document.createElement('span');
+                dot.className = `dot ${repo.color}`;
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'repo-name';
+                nameSpan.textContent = repo.name;
+                const starBtn = document.createElement('button');
+                starBtn.className = `star-btn ${repo.starred ? 'starred' : ''}`;
+                starBtn.textContent = '★';
+                starBtn.onclick = (e) => { e.stopPropagation();
+                    toggleStar(repo.id); };
+                const badge = document.createElement('span');
+                badge.className = 'html-badge';
+                badge.textContent = '.html';
+                badge.onclick = (e) => { e.stopPropagation();
+                    launchApp(repo.id); };
+                div.appendChild(dot);
+                div.appendChild(nameSpan);
+                div.appendChild(badge);
+                div.appendChild(starBtn);
+                div.onclick = () => focusRepo(repo.id);
+                if (repo.id === focusedRepoId) {
+                    div.style.borderColor = 'rgba(0,255,255,0.3)';
+                    div.style.background = 'rgba(0,255,255,0.05)';
+                }
+                repoContainer.appendChild(div);
+            });
+            updateStarCount();
+        }
+
+        // ── Focus Repo ──
+        function focusRepo(id) {
+            focusedRepoId = id;
+            const repo = REPOS.find(r => r.id === id);
+            if (repo) {
+                focusLabel.textContent = `🌐 ${repo.name}`;
+                document.querySelectorAll('.repo-item').forEach(el => {
+                    el.style.borderColor = 'rgba(255,255,255,0.04)';
+                    el.style.background = 'rgba(0,0,0,0.25)';
+                    if (parseInt(el.dataset.id) === id) {
+                        el.style.borderColor = 'rgba(0,255,255,0.3)';
+                        el.style.background = 'rgba(0,255,255,0.05)';
+                    }
+                });
+                if (window.__helix) {
+                    window.__helix.focusOnRepo(id);
+                }
+                showToast(`📌 Focus: ${repo.name}`);
+            }
+        }
+
+        // ── Toggle Star ──
+        function toggleStar(id) {
+            const repo = REPOS.find(r => r.id === id);
+            if (repo) {
+                repo.starred = !repo.starred;
+                renderRepos();
+                updateStarCount();
+                showToast(repo.starred ? `⭐ ${repo.name} starred` : `☆ ${repo.name} unstarred`);
+            }
+        }
+
+        function updateStarCount() {
+            const count = REPOS.filter(r => r.starred).length;
+            starCountEl.textContent = count;
+        }
+
+        // ── Sidebar ──
+        function toggleSidebar() {
+            isSidebarOpen = !isSidebarOpen;
+            document.getElementById('repo-sidebar').classList.toggle('collapsed', !isSidebarOpen);
+            document.getElementById('toggle-sidebar').querySelector('.badge-count').textContent = isSidebarOpen ? REPOS
+                .length : '☰';
+        }
+
+        // ── Launch App ──
+        function launchApp(id) {
+            const repo = REPOS.find(r => r.id === id);
+            if (!repo) return;
+            if (activeAppIds.includes(id)) {
+                showToast(`⚠️ ${repo.name} already open`);
+                return;
+            }
+            if (activeAppIds.length >= 10) {
+                showToast('⚠️ MAX 10 apps open. Close some to conserve energy.');
+                return;
+            }
+            activeAppIds.push(id);
+            updateActiveCount();
+            renderDock();
+            openCanvas(repo);
+            showToast(`🚀 Launched: ${repo.name}`);
+        }
+
+        // ── Open Canvas ──
+        function openCanvas(repo) {
+            canvasContainer.classList.add('open');
+            canvasRepoName.textContent = repo.name;
+            const htmlName = repo.html.split('/').pop() || 'index.html';
+            canvasHtmlName.textContent = htmlName;
+            canvasIframe.style.display = 'block';
+            canvasPlaceholder.style.display = 'none';
+            canvasIframe.src = repo.html;
+            canvasIframe.onerror = () => {
+                canvasIframe.style.display = 'none';
+                canvasPlaceholder.style.display = 'flex';
+                canvasPlaceholder.innerHTML =
+                    `<span class="big">🧬</span><span>⚠️ ${repo.name} · ${htmlName}<br><small style="color:rgba(255,255,255,0.2);">(iframe blocked — simulation active)</small></span>`;
+            };
+            document.querySelectorAll('.dock-tab').forEach(el => {
+                el.classList.toggle('active', parseInt(el.dataset.repoId) === repo.id);
+            });
+        }
+
+        // ── Close Canvas ──
+        function closeCanvas() {
+            canvasContainer.classList.remove('open');
+            canvasIframe.style.display = 'none';
+            canvasPlaceholder.style.display = 'flex';
+            canvasPlaceholder.innerHTML = `<span class="big">🧬</span><span>select a .html dot to launch</span>`;
+            canvasIframe.src = '';
+            document.querySelectorAll('.dock-tab').forEach(el => el.classList.remove('active'));
+        }
+
+        // ── Close App ──
+        function closeApp(id) {
+            activeAppIds = activeAppIds.filter(aid => aid !== id);
+            updateActiveCount();
+            renderDock();
+            if (activeAppIds.length === 0) {
+                closeCanvas();
+            } else {
+                const last = activeAppIds[activeAppIds.length - 1];
+                const repo = REPOS.find(r => r.id === last);
+                if (repo) openCanvas(repo);
+            }
+            showToast(`✖ App closed`);
+        }
+
+        // ── Render Dock ──
+        function renderDock() {
+            dockEl.innerHTML = '';
+            activeAppIds.forEach(id => {
+                const repo = REPOS.find(r => r.id === id);
+                if (!repo) return;
+                const tab = document.createElement('div');
+                tab.className = `dock-tab ${id === focusedRepoId ? 'active' : ''}`;
+                tab.dataset.repoId = id;
+                const dot = document.createElement('span');
+                dot.className = `tab-dot ${repo.color}`;
+                const label = document.createElement('span');
+                label.className = 'tab-label';
+                label.textContent = repo.name.length > 12 ? repo.name.slice(0, 10) + '…' : repo.name;
+                const closeBtn = document.createElement('button');
+                closeBtn.className = 'tab-close';
+                closeBtn.textContent = '×';
+                closeBtn.onclick = (e) => { e.stopPropagation();
+                    closeApp(id); };
+                tab.appendChild(dot);
+                tab.appendChild(label);
+                tab.appendChild(closeBtn);
+                tab.onclick = () => {
+                    const r = REPOS.find(rr => rr.id === id);
+                    if (r) { focusRepo(id);
+                        openCanvas(r); }
+                };
+                dockEl.appendChild(tab);
+            });
+            const newAdd = document.createElement('div');
+            newAdd.className = 'dock-add';
+            newAdd.textContent = '+';
+            newAdd.onclick = () => openCurrentFocusApp();
+            dockEl.appendChild(newAdd);
+        }
+
+        // ── Open current focus app ──
+        function openCurrentFocusApp() {
+            const repo = REPOS.find(r => r.id === focusedRepoId) || REPOS[0];
+            if (!repo) return;
+            if (activeAppIds.includes(repo.id)) {
+                openCanvas(repo);
+                return;
+            }
+            launchApp(repo.id);
+        }
+
+        function updateActiveCount() {
+            activeCountEl.textContent = activeAppIds.length;
+        }
+
+        // ── Toast ──
+        function showToast(msg) {
+            toastEl.textContent = msg;
+            toastEl.classList.add('show');
+            clearTimeout(toastEl._timeout);
+            toastEl._timeout = setTimeout(() => {
+                toastEl.classList.remove('show');
+            }, 2000);
+        }
+
+        // ── Export / Import Session ──
+        function exportSession() {
+            const data = {
+                version: 'helix-v4',
+                timestamp: new Date().toISOString(),
+                activeApps: activeAppIds,
+                favorites: REPOS.filter(r => r.starred).map(r => r.id),
+                focusedRepo: focusedRepoId,
+                repoState: REPOS.map(r => ({ id: r.id, starred: r.starred })),
+                nodeConnections: nodeConnections,
+                canvasNodes: canvasNodes,
+                remixItems: remixItems,
+                nodeCanvas: document.getElementById('node-canvas').innerHTML,
+            };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `helix_session_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('⬇ Session exported');
+        }
+
+        function importSession(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = JSON.parse(e.target.result);
+                    if (data.repoState) {
+                        data.repoState.forEach(item => {
+                            const repo = REPOS.find(r => r.id === item.id);
+                            if (repo) repo.starred = item.starred;
+                        });
+                    }
+                    if (data.focusedRepo) {
+                        focusRepo(data.focusedRepo);
+                    }
+                    if (data.activeApps) {
+                        activeAppIds = [];
+                        data.activeApps.forEach(id => {
+                            if (!activeAppIds.includes(id) && activeAppIds.length < 10) {
+                                activeAppIds.push(id);
+                            }
+                        });
+                        updateActiveCount();
+                        renderDock();
+                        if (activeAppIds.length > 0) {
+                            const last = activeAppIds[activeAppIds.length - 1];
+                            const repo = REPOS.find(r => r.id === last);
+                            if (repo) openCanvas(repo);
+                        }
+                    }
+                    if (data.nodeConnections) {
+                        nodeConnections = data.nodeConnections;
+                    }
+                    if (data.canvasNodes) {
+                        canvasNodes = data.canvasNodes;
+                    }
+                    if (data.remixItems) {
+                        remixItems = data.remixItems;
+                    }
+                    if (data.nodeCanvas) {
+                        document.getElementById('node-canvas').innerHTML = data.nodeCanvas;
+                        document.querySelectorAll('.draggable-node').forEach(el => {
+                            el.setAttribute('draggable', 'true');
+                            el.ondragstart = dragNode;
+                            const connector = el.querySelector('.node-connector');
+                            if (connector) {
+                                connector.onclick = (ev) => {
+                                    ev.stopPropagation();
+                                    handleConnectorClick(ev, el.id);
+                                };
+                            }
+                            const editBtn = el.querySelector('.node-edit-btn');
+                            if (editBtn) {
+                                editBtn.onclick = (ev) => {
+                                    ev.stopPropagation();
+                                    openNodeEditor(el.id);
+                                };
+                            }
+                            el.onclick = (ev) => {
+                                if (ev.target.classList.contains('node-connector') || ev.target.classList.contains(
+                                        'node-edit-btn')) return;
+                                handleNodeClick(ev, el.id);
+                            };
+                        });
+                        drawAllConnections();
+                    }
+                    renderRepos();
+                    renderLibrary();
+                    showToast('⬆ Session loaded ✓');
+                } catch (err) {
+                    showToast('⚠️ Invalid session file');
+                }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        // ── Node Studio ──
+        function openNodeStudio() {
+            document.getElementById('node-studio-modal').classList.add('open');
+            renderLibrary();
+            if (canvasNodes.length === 0 && document.querySelectorAll('.draggable-node').length === 0) {
+                remixItems.forEach((item, i) => {
+                    const x = 40 + (i % 4) * 140;
+                    const y = 40 + Math.floor(i / 4) * 80;
+                    canvasNodes.push({
+                        id: item.id,
+                        name: item.name,
+                        color: item.color,
+                        html: item.html,
+                        x: x,
+                        y: y,
+                        description: '',
+                        events: '',
+                        tags: item.tag || ''
+                    });
+                });
+                renderCanvasNodes();
+                drawAllConnections();
+            }
+            showToast('✦ Node Studio opened');
+        }
+
+        function closeNodeStudio() {
+            document.getElementById('node-studio-modal').classList.remove('open');
+            pathMenu.style.display = 'none';
+            closeNodeEditor();
+        }
+
+        function clearNodeCanvas() {
+            canvasNodes = [];
+            nodeConnections = [];
+            const canvas = document.getElementById('node-canvas');
+            const svg = canvas.querySelector('#node-svg-connections');
+            canvas.innerHTML = '';
+            canvas.appendChild(svg);
+            showToast('🗑 Canvas cleared');
+        }
+
+        // ── Render Library ──
+        function renderLibrary() {
+            libraryList.innerHTML = '';
+            REPOS.forEach(repo => {
+                const item = document.createElement('div');
+                item.className = 'lib-item';
+                item.draggable = true;
+                item.dataset.repoId = repo.id;
+                const dot = document.createElement('span');
+                dot.className = 'color-dot';
+                dot.style.background = repo.color;
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'lib-name';
+                nameSpan.textContent = repo.name;
+                item.appendChild(dot);
+                item.appendChild(nameSpan);
+                item.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', JSON.stringify({ type: 'library', repoId: repo.id }));
+                    e.dataTransfer.effectAllowed = 'copy';
+                };
+                libraryList.appendChild(item);
+            });
+        }
+
+        // ── Drop from library ──
+        function dropNode(e) {
+            e.preventDefault();
+            const canvas = document.getElementById('node-canvas');
+            const rect = canvas.getBoundingClientRect();
+            const raw = e.dataTransfer.getData('text/plain');
+            try {
+                const data = JSON.parse(raw);
+                if (data.type === 'library') {
+                    const repo = REPOS.find(r => r.id === data.repoId);
+                    if (repo) {
+                        const newId = Math.max(...canvasNodes.map(n => n.id), 0) + 1;
+                        const x = e.clientX - rect.left - 50;
+                        const y = e.clientY - rect.top - 30;
+                        canvasNodes.push({
+                            id: newId,
+                            name: repo.name,
+                            color: repo.color,
+                            html: repo.html,
+                            x: Math.max(0, x),
+                            y: Math.max(0, y),
+                            description: '',
+                            events: '',
+                            tags: repo.color
+                        });
+                        renderCanvasNodes();
+                        showToast(`➕ Added ${repo.name} to canvas`);
+                    }
+                } else {
+                    const id = raw;
+                    const node = document.getElementById(id);
+                    if (node && canvas.contains(node)) {
+                        const x = e.clientX - rect.left - node.offsetWidth / 2;
+                        const y = e.clientY - rect.top - node.offsetHeight / 2;
+                        node.style.left = Math.max(0, x) + 'px';
+                        node.style.top = Math.max(0, y) + 'px';
+                        const nodeId = parseInt(id.replace('node-', ''));
+                        const cn = canvasNodes.find(n => n.id === nodeId);
+                        if (cn) { cn.x = Math.max(0, x);
+                            cn.y = Math.max(0, y); }
+                        showToast('📍 Node moved');
+                        setTimeout(drawAllConnections, 50);
+                    }
+                }
+            } catch (err) {
+                const id = raw;
+                const node = document.getElementById(id);
+                if (node && canvas.contains(node)) {
+                    const x = e.clientX - rect.left - node.offsetWidth / 2;
+                    const y = e.clientY - rect.top - node.offsetHeight / 2;
+                    node.style.left = Math.max(0, x) + 'px';
+                    node.style.top = Math.max(0, y) + 'px';
+                    const nodeId = parseInt(id.replace('node-', ''));
+                    const cn = canvasNodes.find(n => n.id === nodeId);
+                    if (cn) { cn.x = Math.max(0, x);
+                        cn.y = Math.max(0, y); }
+                    showToast('📍 Node moved');
+                    setTimeout(drawAllConnections, 50);
+                }
+            }
+        }
+
+        // ── Render Canvas Nodes ──
+        function renderCanvasNodes() {
+            const canvas = document.getElementById('node-canvas');
+            const svg = canvas.querySelector('#node-svg-connections');
+            canvas.querySelectorAll('.draggable-node').forEach(el => el.remove());
+            canvasNodes.forEach(node => {
+                const div = document.createElement('div');
+                div.className = 'draggable-node';
+                div.draggable = true;
+                div.ondragstart = dragNode;
+                div.id = `node-${node.id}`;
+                div.style.left = node.x + 'px';
+                div.style.top = node.y + 'px';
+                const preview = document.createElement('div');
+                preview.className = 'node-preview';
+                const previewCanvas = document.createElement('canvas');
+                previewCanvas.width = 80;
+                previewCanvas.height = 40;
+                const ctx = previewCanvas.getContext('2d');
+                ctx.fillStyle = '#05050f';
+                ctx.fillRect(0, 0, 80, 40);
+                ctx.fillStyle = node.color;
+                ctx.fillRect(4, 4, 72, 32);
+                ctx.fillStyle = '#fff';
+                ctx.font = '7px monospace';
+                ctx.fillText(node.name.slice(0, 8), 8, 20);
+                preview.appendChild(previewCanvas);
+                const title = document.createElement('div');
+                title.className = 'node-title';
+                title.textContent = node.name;
+                const sub = document.createElement('div');
+                sub.className = 'node-sub';
+                sub.textContent = node.html.split('/').pop() || 'index.html';
+                const tag = document.createElement('span');
+                tag.className = 'node-tag';
+                tag.textContent = node.tags || node.color;
+                const editBtn = document.createElement('button');
+                editBtn.className = 'node-edit-btn';
+                editBtn.textContent = '✎';
+                editBtn.onclick = (ev) => {
+                    ev.stopPropagation();
+                    openNodeEditor(div.id);
+                };
+                const connector = document.createElement('div');
+                connector.className = 'node-connector';
+                connector.dataset.repoId = node.id;
+                connector.onclick = (ev) => {
+                    ev.stopPropagation();
+                    handleConnectorClick(ev, div.id);
+                };
+                div.appendChild(preview);
+                div.appendChild(title);
+                div.appendChild(sub);
+                div.appendChild(tag);
+                div.appendChild(editBtn);
+                div.appendChild(connector);
+                div.onclick = (ev) => {
+                    if (ev.target.classList.contains('node-connector') || ev.target.classList.contains(
+                            'node-edit-btn')) return;
+                    handleNodeClick(ev, div.id);
+                };
+                canvas.appendChild(div);
+            });
+            drawAllConnections();
+        }
+
+        // ── Connection Logic ──
+        function handleConnectorClick(event, nodeId) {
+            event.stopPropagation();
+            const nodeEl = document.getElementById(nodeId);
+            if (!nodeEl) return;
+            if (connectSourceNodeId === null) {
+                connectSourceNodeId = nodeId;
+                document.querySelectorAll('.node-connector').forEach(el => {
+                    el.classList.remove('active-source', 'active-target');
+                });
+                const srcConn = nodeEl.querySelector('.node-connector');
+                if (srcConn) srcConn.classList.add('active-source');
+                showToast(`🔗 Source: ${nodeId} — click another node's dot to connect`);
+                return;
+            }
+            const sourceId = connectSourceNodeId;
+            const targetId = nodeId;
+            if (sourceId === targetId) {
+                connectSourceNodeId = null;
+                document.querySelectorAll('.node-connector').forEach(el => {
+                    el.classList.remove('active-source', 'active-target');
+                });
+                showToast('❌ Connection cancelled');
+                return;
+            }
+            if (nodeConnections.some(c => c.sourceId === sourceId && c.targetId === targetId)) {
+                showToast('⚠️ Connection already exists');
+                connectSourceNodeId = null;
+                document.querySelectorAll('.node-connector').forEach(el => {
+                    el.classList.remove('active-source', 'active-target');
+                });
+                return;
+            }
+            nodeConnections.push({ sourceId, targetId });
+            drawAllConnections();
+            connectSourceNodeId = null;
+            document.querySelectorAll('.node-connector').forEach(el => {
+                el.classList.remove('active-source', 'active-target');
+            });
+            // Trigger connection functionality: launch the target app
+            const targetNodeId = parseInt(targetId.replace('node-', ''));
+            const targetNode = canvasNodes.find(n => n.id === targetNodeId);
+            if (targetNode) {
+                const repo = REPOS.find(r => r.name === targetNode.name);
+                if (repo) {
+                    showToast(`🔗 Connected → Launching ${repo.name}`);
+                    if (!activeAppIds.includes(repo.id)) {
+                        launchApp(repo.id);
+                    } else {
+                        openCanvas(repo);
+                    }
+                }
+            }
+        }
+
+        function drawAllConnections() {
+            const svg = document.getElementById('node-svg-connections');
+            svg.innerHTML = '';
+            nodeConnections.forEach(conn => {
+                const sourceEl = document.getElementById(conn.sourceId);
+                const targetEl = document.getElementById(conn.targetId);
+                if (!sourceEl || !targetEl) return;
+                const canvas = document.getElementById('node-canvas');
+                const rect = canvas.getBoundingClientRect();
+                const sRect = sourceEl.getBoundingClientRect();
+                const tRect = targetEl.getBoundingClientRect();
+                const x1 = sRect.left - rect.left + sRect.width / 2;
+                const y1 = sRect.top - rect.top + sRect.height / 2;
+                const x2 = tRect.left - rect.left + tRect.width / 2;
+                const y2 = tRect.top - rect.top + tRect.height / 2;
+                const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                line.setAttribute('x1', x1);
+                line.setAttribute('y1', y1);
+                line.setAttribute('x2', x2);
+                line.setAttribute('y2', y2);
+                line.setAttribute('stroke', 'rgba(0,255,255,0.6)');
+                line.setAttribute('stroke-width', '2');
+                line.setAttribute('stroke-dasharray', '4,4');
+                svg.appendChild(line);
+            });
+        }
+
+        // ── Node click for path menu ──
+        function handleNodeClick(event, nodeId) {
+            const incoming = nodeConnections.filter(c => c.targetId === nodeId);
+            if (incoming.length > 1) {
+                const nodeEl = document.getElementById(nodeId);
+                if (!nodeEl) return;
+                const rect = nodeEl.getBoundingClientRect();
+                const canvasRect = document.getElementById('node-canvas').getBoundingClientRect();
+                pathMenu.style.left = (rect.left - canvasRect.left + 10) + 'px';
+                pathMenu.style.top = (rect.top - canvasRect.top + 20) + 'px';
+                pathMenu.innerHTML = '';
+                incoming.forEach(conn => {
+                    const srcNode = document.getElementById(conn.sourceId);
+                    if (!srcNode) return;
+                    const nodeIdNum = parseInt(srcNode.id.replace('node-', ''));
+                    const nodeData = canvasNodes.find(n => n.id === nodeIdNum);
+                    const item = document.createElement('div');
+                    item.className = 'menu-item';
+                    item.textContent = `◀ ${nodeData ? nodeData.name : conn.sourceId}`;
+                    item.onclick = () => {
+                        if (nodeData) {
+                            const repo = REPOS.find(r => r.name === nodeData.name);
+                            if (repo) {
+                                focusRepo(repo.id);
+                                if (!activeAppIds.includes(repo.id)) {
+                                    launchApp(repo.id);
+                                } else {
+                                    openCanvas(repo);
+                                }
+                            } else {
+                                showToast(`📌 ${nodeData.name}`);
+                            }
+                        }
+                        pathMenu.style.display = 'none';
+                    };
+                    pathMenu.appendChild(item);
+                });
+                const cancelItem = document.createElement('div');
+                cancelItem.className = 'menu-item';
+                cancelItem.textContent = '✕ cancel';
+                cancelItem.style.color = 'rgba(255,100,100,0.6)';
+                cancelItem.onclick = () => { pathMenu.style.display = 'none'; };
+                pathMenu.appendChild(cancelItem);
+                pathMenu.style.display = 'block';
+                showToast(`🔀 ${incoming.length} paths available`);
+            } else {
+                pathMenu.style.display = 'none';
+            }
+        }
+
+        // ── Timeline Layout ──
+        function toggleTimelineLayout() {
+            timelineMode = !timelineMode;
+            const btn = document.getElementById('timeline-toggle-btn');
+            btn.classList.toggle('active', timelineMode);
+            if (timelineMode) {
+                applyTimelineLayout();
+                showToast('⏱ Timeline mode ON');
+            } else {
+                canvasNodes.forEach(node => {
+                    const el = document.getElementById(`node-${node.id}`);
+                    if (el) {
+                        el.style.left = node.x + 'px';
+                        el.style.top = node.y + 'px';
+                    }
+                });
+                showToast('🌀 Freeform mode');
+            }
+            setTimeout(drawAllConnections, 50);
+        }
+
+        function applyTimelineLayout() {
+            const nodes = canvasNodes.sort((a, b) => a.name.localeCompare(b.name));
+            const canvasWidth = document.getElementById('node-canvas').clientWidth;
+            const total = nodes.length;
+            const spacing = Math.min(140, (canvasWidth - 80) / total);
+            nodes.forEach((node, i) => {
+                const el = document.getElementById(`node-${node.id}`);
+                if (el) {
+                    const x = 40 + i * spacing;
+                    const y = 40 + (i % 2) * 120;
+                    el.style.left = x + 'px';
+                    el.style.top = y + 'px';
+                    node.x = x;
+                    node.y = y;
+                }
+            });
+        }
+
+        // ── Node Editor ──
+        function openNodeEditor(nodeId) {
+            const id = parseInt(nodeId.replace('node-', ''));
+            const node = canvasNodes.find(n => n.id === id);
+            if (!node) return;
+            editingNodeId = id;
+            document.getElementById('edit-node-name').value = node.name || '';
+            document.getElementById('edit-node-color').value = node.color || 'purple';
+            document.getElementById('edit-node-desc').value = node.description || '';
+            document.getElementById('edit-node-events').value = node.events || '';
+            document.getElementById('edit-node-tags').value = node.tags || '';
+            editorPopup.classList.add('open');
+        }
+
+        function closeNodeEditor() {
+            editorPopup.classList.remove('open');
+            editingNodeId = null;
+        }
+
+        function saveNodeEditor() {
+            if (editingNodeId === null) return;
+            const node = canvasNodes.find(n => n.id === editingNodeId);
+            if (!node) return;
+            node.name = document.getElementById('edit-node-name').value || node.name;
+            node.color = document.getElementById('edit-node-color').value || node.color;
+            node.description = document.getElementById('edit-node-desc').value || '';
+            node.events = document.getElementById('edit-node-events').value || '';
+            node.tags = document.getElementById('edit-node-tags').value || '';
+            const el = document.getElementById(`node-${node.id}`);
+            if (el) {
+                el.querySelector('.node-title').textContent = node.name;
+                el.querySelector('.node-tag').textContent = node.tags || node.color;
+                const previewCanvas = el.querySelector('.node-preview canvas');
+                if (previewCanvas) {
+                    const ctx = previewCanvas.getContext('2d');
+                    ctx.fillStyle = '#05050f';
+                    ctx.fillRect(0, 0, 80, 40);
+                    ctx.fillStyle = node.color;
+                    ctx.fillRect(4, 4, 72, 32);
+                    ctx.fillStyle = '#fff';
+                    ctx.font = '7px monospace';
+                    ctx.fillText(node.name.slice(0, 8), 8, 20);
+                }
+                const remixItem = remixItems.find(r => r.id === node.id);
+                if (remixItem) remixItem.color = node.color;
+                const repo = REPOS.find(r => r.name === node.name);
+                if (repo) repo.color = node.color;
+            }
+            closeNodeEditor();
+            showToast(`💾 Saved ${node.name}`);
+            renderRepos();
+            renderLibrary();
+            if (window.__helix) {
+                window.__helix.buildHelix(REPOS);
+                if (focusedRepoId) window.__helix.focusOnRepo(focusedRepoId);
+            }
+        }
+
+        function deleteNodeFromEditor() {
+            if (editingNodeId === null) return;
+            const idx = canvasNodes.findIndex(n => n.id === editingNodeId);
+            if (idx !== -1) {
+                canvasNodes.splice(idx, 1);
+                nodeConnections = nodeConnections.filter(c => c.sourceId !== `node-${editingNodeId}` && c.targetId !==
+                    `node-${editingNodeId}`);
+                closeNodeEditor();
+                renderCanvasNodes();
+                drawAllConnections();
+                showToast('🗑 Node deleted');
+            }
+        }
+
+        // ── Drag & Drop for nodes ──
+        let draggedNode = null;
+
+        function dragNode(e) {
+            draggedNode = e.target.closest('.draggable-node');
+            if (draggedNode) {
+                e.dataTransfer.setData('text/plain', draggedNode.id);
+                e.dataTransfer.effectAllowed = 'move';
+            }
+        }
+
+        function allowDrop(e) { e.preventDefault(); }
+
+        // ── Generate Helix from canvas nodes ──
+        function generateHelixFromCanvas() {
+            if (canvasNodes.length === 0) {
+                showToast('⚠️ No nodes on canvas to generate helix');
+                return;
+            }
+            const newRepos = canvasNodes.map((node, i) => ({
+                id: i + 1,
+                name: node.name,
+                html: node.html || 'https://worldpeacebtn.github.io/',
+                color: node.color || 'purple',
+                starred: false,
+            }));
+            REPOS = newRepos;
+            renderRepos();
+            if (window.__helix) {
+                window.__helix.buildHelix(REPOS);
+                if (REPOS.length > 0) focusRepo(REPOS[0].id);
+            }
+            showToast(`🌀 Generated helix from ${canvasNodes.length} nodes`);
+        }
+
+        // ── Save Node Canvas as HTML ──
+        function saveNodeCanvasAsHTML() {
+            const canvas = document.getElementById('node-canvas');
+            const inner = canvas.innerHTML;
+            const style = document.querySelector('style').innerHTML;
+            const full = `<!DOCTYPE html>
+        <html>
+        <head><meta charset="UTF-8"><title>Node Workflow Export</title>
+        <style>${style} body{background:#020205;padding:20px;}</style>
+        </head>
+        <body>
+          <h2 style="color:#88ffff;font-family:Orbitron;font-size:18px;margin-bottom:16px;">✦ NODE WORKFLOW</h2>
+          <div style="position:relative;width:100%;height:80vh;background:#05050f;border-radius:12px;border:1px solid rgba(0,255,255,0.1);overflow:hidden;">
+            ${inner}
+          </div>
+          <p style="color:rgba(255,255,255,0.2);font-family:monospace;font-size:10px;margin-top:12px;">exported from Helix Office · worldpeacebtn</p>
+        </body>
+        </html>`;
+            const blob = new Blob([full], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `node_workflow_${new Date().toISOString().slice(0,10)}.html`;
+            a.click();
+            URL.revokeObjectURL(url);
+            showToast('⬇ Node workflow exported as HTML');
+        }
+
+        // ── Init ──
+        async function init() {
+            await fetchRepos();
+            updateActiveCount();
+            renderDock();
+            if (REPOS.length > 0) {
+                focusRepo(REPOS[0].id);
+            }
+            canvasContainer.classList.remove('open');
+            canvasIframe.style.display = 'none';
+            canvasPlaceholder.style.display = 'flex';
+            canvasPlaceholder.innerHTML = `<span class="big">🧬</span><span>select a .html dot to launch</span>`;
+            showToast('🧬 Helix Office · Ready');
+        }
+
+        // ── Expose ──
+        window.REPOS = REPOS;
+        window.focusRepo = focusRepo;
+        window.toggleStar = toggleStar;
+        window.toggleSidebar = toggleSidebar;
+        window.launchApp = launchApp;
+        window.closeApp = closeApp;
+        window.openCurrentFocusApp = openCurrentFocusApp;
+        window.exportSession = exportSession;
+        window.importSession = importSession;
+        window.openNodeStudio = openNodeStudio;
+        window.closeNodeStudio = closeNodeStudio;
+        window.clearNodeCanvas = clearNodeCanvas;
+        window.dragNode = dragNode;
+        window.allowDrop = allowDrop;
+        window.dropNode = dropNode;
+        window.saveNodeCanvasAsHTML = saveNodeCanvasAsHTML;
+        window.closeCanvas = closeCanvas;
+        window.toggleTimelineLayout = toggleTimelineLayout;
+        window.handleConnectorClick = handleConnectorClick;
+        window.handleNodeClick = handleNodeClick;
+        window.drawAllConnections = drawAllConnections;
+        window.generateHelixFromCanvas = generateHelixFromCanvas;
+        window.openNodeEditor = openNodeEditor;
+        window.closeNodeEditor = closeNodeEditor;
+        window.saveNodeEditor = saveNodeEditor;
+        window.deleteNodeFromEditor = deleteNodeFromEditor;
+        window.renderCanvasNodes = renderCanvasNodes;
+        window.renderLibrary = renderLibrary;
+        window.applySort = applySort;
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
